@@ -1,12 +1,37 @@
 use std::process::Command;
+use crossterm::event::{self, KeyEventKind};
 use walkdir::WalkDir;
 use std::path::{Path, PathBuf};
+use std::io::stdout;
 
+use std::fmt::{self, Display};
+use std::{time::Duration, io};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
 use std::cmp::Ordering;
 
+
+
+
+use crossterm::{
+    event::{
+        DisableFocusChange, DisableMouseCapture,
+        EnableFocusChange, EnableMouseCapture, Event, KeyCode, poll
+    },
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    execute,
+};
+use ratatui::{
+    buffer::Buffer,
+    layout::Rect,
+    style::Stylize,
+    layout::{Constraint, Direction, Layout},
+    symbols::border,
+    text::{Line, Text},
+    widgets::{Block, Paragraph, Widget,ListItem, List},
+    DefaultTerminal, Frame,
+};
 // |||||||||||||||||||||||||||||||
 // fuzzy finder part
 // |||||||||||||||||||||||||||||||
@@ -29,6 +54,14 @@ pub trait FuzzyCandidate {
 pub struct ScoredResult<'a, T> {
     pub item: &'a T,
     pub score: f64,
+}
+impl<'a, T> fmt::Display for ScoredResult<'a, T> 
+where 
+    T: fmt::Display 
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[{:.2}] {}", self.score, self.item)
+    }
 }
 //
 // #[derive(Default)]
@@ -79,7 +112,7 @@ fn other_calc(a: &str, b: &str) -> f64 {
     let len_b = b.chars().count();
 
     if len_a == 0 && len_b == 0 { return 100.0; }
-    
+
     let max_len = std::cmp::max(len_a, len_b) as f64;
     let distance = other_recurse(a, b) as f64;
     (1.0 - (distance / max_len)) * 100.0
@@ -94,7 +127,6 @@ fn other_recurse(a: &str, b: &str) -> usize {
     let b_head = b_chars.next().unwrap();
     let a_tail = a_chars.as_str();
     let b_tail = b_chars.as_str();
-
     if a_head == b_head {
         other_recurse(a_tail, b_tail)
     } else {
@@ -148,6 +180,10 @@ impl<A: SimilarityAlgorithm> FuzzyMatcher<A> {
         self
     }
 
+    // pub fn set_thresh(mut self, threshold: f64) -> Self {
+    //     self.threshold = threshold;
+    //     self
+    // }
     // main thing?
     pub fn search<'a, T: FuzzyCandidate>(
         &self,
@@ -166,8 +202,8 @@ impl<A: SimilarityAlgorithm> FuzzyMatcher<A> {
                     } else {
                         // TODO!!!
                         self.algorithm.score(target.text, query)
-                        // if target.text.to_lowercase().contains(&query.to_lowercase()) { 50.0 } else { 0.0 }
-                        //TOTO!
+                            // if target.text.to_lowercase().contains(&query.to_lowercase()) { 50.0 } else { 0.0 }
+                            //TOTO!
                     };
                     let weighted_score = score * target.weight_multiplier;
                     if weighted_score > best_score {
@@ -209,6 +245,12 @@ pub struct DesktopEntity{
     tags: Vec<String>,
 
     launch_count: i64
+}
+
+impl fmt::Display for DesktopEntity {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} ({}) - {}", self.name, self.generic_name, self.desc)
+    }
 }
 impl FuzzyCandidate for DesktopEntity {
     fn search_targets(&self) -> Vec<ScoreTarget> {
@@ -256,6 +298,12 @@ pub struct AnimalEnt{
     freq:f64,
 } 
 
+impl fmt::Display for AnimalEnt {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} (freq: {:.2})", self.name, self.freq)
+    }
+}
+
 
 impl FuzzyCandidate for AnimalEnt{
     fn search_targets(&self) -> Vec<ScoreTarget>{
@@ -278,8 +326,130 @@ pub struct DemoSession<'a> {
     current_query: String,
 }
 
+//Todo genuine slop. fix this LOL
+impl<'a> DemoSession<'a> {
+    pub fn type_char<A: SimilarityAlgorithm>(&mut self, c: char, matcher: &FuzzyMatcher<A>) {
+        self.current_query.push(c);
 
-fn main() {
+        let candidates_to_search: &[AnimalEnt] = if let Some(last_results) = self.history.last() {
+            self.list_strings 
+        } else {
+            self.list_strings
+        };
+        let new_results = matcher.search(&self.current_query, candidates_to_search);
+        self.history.push(new_results);
+    }
+    pub fn backspace(&mut self) {
+        if !self.current_query.is_empty() {
+            self.current_query.pop();
+            self.history.pop(); 
+        }
+    }
+
+    pub fn current_results(&self) -> &[ScoredResult<'a, AnimalEnt>] {
+        self.history.last().map(|v| v.as_slice()).unwrap_or(&[])
+    }
+}
+
+// dead basic ratatui thing
+//
+
+pub struct App<'a, S: SimilarityAlgorithm> {
+    // data_list: Vec<AnimalEnt>,
+    session: DemoSession<'a>,
+    matcher: FuzzyMatcher<S>,
+    exit: bool,
+    keystrokes: Vec<String> 
+
+}
+
+impl<'a, S> App<'a, S> 
+where 
+    S: SimilarityAlgorithm 
+{
+    pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
+        execute!(io::stdout(), EnableMouseCapture, EnableFocusChange)?;
+        // when run called, loop until the app's exit varible is set!
+        while !self.exit {
+            terminal.draw(|frame| self.draw(frame))?;
+            self.handle_events()?;
+        }
+        execute!(io::stdout(), DisableMouseCapture, DisableFocusChange)?;
+        Ok(())
+    }
+    fn draw(&self, frame: &mut Frame) {
+
+        // frame.render_widget(self, frame.area());
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Percentage(10), // left
+                Constraint::Percentage(90), // bot
+            ]).split(frame.area());
+
+        let title = Line::from(" Animal Searcher ".bold());
+        
+        let block = Block::bordered()
+            .title(title.centered())
+            .border_set(border::THICK);
+        
+        let counter_text = Text::from(vec![Line::from(vec![
+            "Search: ".into(),
+            self.session.current_query.to_string().yellow(),
+            ])]);
+
+        let para = Paragraph::new(counter_text)
+            .centered()
+            .block(block);
+        frame.render_widget(para,chunks[0]);
+        
+         let list_items: Vec<ListItem> = self.session.current_results()
+            .iter()
+            // .enumerVate() //gives i
+            .map(|result| {
+                ListItem::new(format!("{}",result))
+            })
+            .collect();
+        
+        let event_list = List::new(list_items)
+            .block(Block::bordered().title(" Results "));
+            // .highlight_symbol(">> "); // Optional: if you add selection logic later
+
+        frame.render_widget(event_list, chunks[1]);
+
+    }
+    fn handle_events(&mut self) -> io::Result<()> { 
+
+        if poll(Duration::from_millis(16))?{
+            if let Event::Key(key) = event::read()? {
+                // Only handle "Press" events (avoids double-counting on Windows)
+                if key.kind == KeyEventKind::Press {
+                    match key.code {
+                        KeyCode::Char(c) => {
+                            self.keystrokes.push(c.to_string());
+                            self.session.type_char(c,&self.matcher); 
+                        }
+                        KeyCode::Backspace => {
+                            self.keystrokes.pop();
+                            self.session.backspace(); 
+                        }
+                        KeyCode::Esc => {
+                            self.exit = true;
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+        Ok(())
+            // print_events(&mut self.keystrokes)
+            //todo!()
+    }
+}
+
+
+
+fn main()-> io::Result<()>  {
 
 
     let file = File::open("animallist.txt").expect("Could not open file");
@@ -292,20 +462,45 @@ fn main() {
             name: name.trim().to_string(),
             freq: 1.0, // basically ignore 
         })
-        .collect();
+    .collect();
 
-    let mut test_sess = DemoSession {
-        list_strings: &animals, 
-        history: Vec::new(),
-        current_query: String::new(),
+    // let mut test_sess = DemoSession {
+    //     list_strings: &animals, 
+        //     history: Vec::new(),
+        //     current_query: String::new(),
+        // };
+        //
+    // let matcher = FuzzyMatcher::with_algo(SimAlgoOtherAlgo);
+
+    let mut app = App{
+        session:
+            DemoSession{
+                list_strings: &animals, 
+                history: Vec::new(),
+                current_query: String::new()
+            },
+            matcher:FuzzyMatcher::with_algo(SimAlgoOtherAlgo),
+            exit:false,
+            keystrokes: Vec::new(),
     };
+    // app.matcher.set_thresh(10.0);
+    app.matcher.threshold=10.0;
+    enable_raw_mode()?; // from cooked -> raw 
+    let mut terminal_out = stdout();
+    execute!(terminal_out, EnterAlternateScreen)?;
+    // println!("{:?}", App::default());
+    let result = ratatui::run(|terminal| app.run(terminal));
+    disable_raw_mode()?;
+    execute!(stdout(), LeaveAlternateScreen)?;
+    result
+        // test_sess.type_char('e', &matcher);
+        // print_results(&test_sess);    
 
-    let matcher = FuzzyMatcher::<SimAlgoOtherAlgo>::new();
-    
-
-    
-    
-    
 }
 
-
+// fn print_results(sess: &DemoSession) {
+//     println!("Query: '{}'", sess.current_query);
+//     for res in sess.current_results() {
+//         println!("  {}: {:.2}", res.item.name, res.score);
+//     }
+// }
