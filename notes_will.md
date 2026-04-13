@@ -19,6 +19,7 @@ Desktop struct:
   desc = "description of it"
   exec = "exec commands + args" - "strawberry %U"
   tags<Vec Str> = []  - "\[AudioVideo\]\[Player\]\[Qt\]\[Audio\];"
+  use-weight = f64 - more launched more often pushed up? store somewhere 
 
 maybe store freq count of launched times and add to weight?
 
@@ -29,7 +30,7 @@ pub struct ScoredApp<'a> {
     pub score: f64, 
 }
 
-
+assumedly id have some sort of stack of ScoredAppVectors to do the pop on backspace
 ```
 [Desktop Entry]
 Version=1.0
@@ -54,3 +55,33 @@ Actions=Play-Pause;Stop;StopAfterCurrent;Previous;Next;
 
 
 engine
+
+
+look into traits + impl on struct?
+
+struct holds config (algo, case_sensitive, etc)
+passed a list? make a resulting score values?
+return sorted?
+
+
+subset caching prob
+
+algo prob look more at like Greedy Matcher + Smith-Waterman for shorthand vs error checking in things like Levenshtein Distance or Sørensen-Dice for similar
+
+
+
+``` rust
+pub struct ScoreTarget<'a> {
+    pub text: &'a str,
+    pub weight_multiplier: f64, // the weight
+    pub exact_match_only: bool, // for smthn like tags? idk
+}
+pub trait FuzzyCandidate {
+    // for structs, define which strings are included in scoring?
+    fn search_targets(&self) -> Vec<ScoreTarget>;
+    // from use statistics, later include ig
+    fn usage_bonus(&self) -> f64;
+}
+```
+so like for desktop ent
+
