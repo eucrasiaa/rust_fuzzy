@@ -85,3 +85,22 @@ pub trait FuzzyCandidate {
 ```
 so like for desktop ent
 
+
+Algorithm:
+
+looking into the FZF v1 greedy:
+
+step 1
+fast fail:
+query = "abuc"
+target = "a buzy camel"
+we hit all 4 in string, so keep it
+else? drop it
+store indexes of match
+
+step 2
+then scoring thing:
+first match at index 0? massive bonus
+index after a space or dash? bonus
+consec indexes?
+

@@ -99,46 +99,94 @@ impl SimilarityAlgorithm for SimAlgoFzfStyle {
         0.0 
     }
 }
+
+pub struct SimAlgoGreedyV1{
+    pub bonus_bound:f64,
+    pub bonus_consec:f64,
+    pub bonus_start:f64,
+}
+impl SimilarityAlgorithm for SimAlgoGreedyV1 {
+
+    fn score(&self, source: &str, target: &str) -> f64 {
+        0.0 
+    }
+}
+
+impl Default for SimAlgoGreedyV1 {
+    fn default() -> Self {
+        Self {
+            bonus_bound: 1.0,
+            bonus_consec: 0.5,
+            bonus_start: 2.0,
+        }
+    }
+}
+
+impl SimAlgoGreedyV1 {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    //byte index of matches (the fast fail here!)
+    fn find_match_indices(&self, query: &str, target: &str) -> Option<Vec<usize>> {
+        todo!()
+    }
+    
+    //string + indexes, score it
+    fn calculate_score(&self, target:&str, indices: &[usize]) -> f64 {
+        todo!()
+    }
+}
+// fn fastFail:
+
+
+
+
+
+
 pub struct SimAlgoOtherAlgo;
 impl SimilarityAlgorithm for SimAlgoOtherAlgo {
     fn score(&self, source: &str, target: &str) -> f64 {
-        other_calc(source, target) 
+        self.other_calc(source, target) 
     }
 }
 
+impl SimAlgoOtherAlgo{
 
-fn other_calc(a: &str, b: &str) -> f64 {
-    let len_a = a.chars().count();
-    let len_b = b.chars().count();
+    fn other_calc(&self, a: &str, b: &str) -> f64 {
+        let len_a = a.chars().count();
+        let len_b = b.chars().count();
 
-    if len_a == 0 && len_b == 0 { return 100.0; }
+        if len_a == 0 && len_b == 0 { return 100.0; }
 
-    let max_len = std::cmp::max(len_a, len_b) as f64;
-    let distance = other_recurse(a, b) as f64;
-    (1.0 - (distance / max_len)) * 100.0
-}
+        let max_len = std::cmp::max(len_a, len_b) as f64;
+        let distance = self.other_recurse(a, b) as f64;
+        (1.0 - (distance / max_len)) * 100.0
+    }
 
-fn other_recurse(a: &str, b: &str) -> usize {
-    if a.is_empty() { return b.chars().count(); }
-    if b.is_empty() { return a.chars().count(); }
-    let mut a_chars = a.chars();
-    let mut b_chars = b.chars();
-    let a_head = a_chars.next().unwrap();
-    let b_head = b_chars.next().unwrap();
-    let a_tail = a_chars.as_str();
-    let b_tail = b_chars.as_str();
-    if a_head == b_head {
-        other_recurse(a_tail, b_tail)
-    } else {
-        1 + std::cmp::min(
-            other_recurse(a_tail, b),    
-            std::cmp::min(
-                other_recurse(a, b_tail), 
-                other_recurse(a_tail, b_tail) 
+    fn other_recurse(&self, a: &str, b: &str) -> usize {
+        if a.is_empty() { return b.chars().count(); }
+        if b.is_empty() { return a.chars().count(); }
+        let mut a_chars = a.chars();
+        let mut b_chars = b.chars();
+        let a_head = a_chars.next().unwrap();
+        let b_head = b_chars.next().unwrap();
+        let a_tail = a_chars.as_str();
+        let b_tail = b_chars.as_str();
+        if a_head == b_head {
+            self.other_recurse(a_tail, b_tail)
+        } else {
+            1 + std::cmp::min(
+                self.other_recurse(a_tail, b),    
+                std::cmp::min(
+                    self.other_recurse(a, b_tail), 
+                    self.other_recurse(a_tail, b_tail) 
+                )
             )
-        )
+        }
     }
 }
+
 
 //conf for FuzzyMatcher
 #[derive(Default)]
@@ -387,33 +435,33 @@ where
                 Constraint::Percentage(90), // bot
             ]).split(frame.area());
 
-        let title = Line::from(" Animal Searcher ".bold());
-        
-        let block = Block::bordered()
-            .title(title.centered())
-            .border_set(border::THICK);
-        
+            let title = Line::from(" Animal Searcher ".bold());
+
+            let block = Block::bordered()
+                .title(title.centered())
+                .border_set(border::THICK);
+
         let counter_text = Text::from(vec![Line::from(vec![
-            "Search: ".into(),
-            self.session.current_query.to_string().yellow(),
-            ])]);
+                "Search: ".into(),
+                self.session.current_query.to_string().yellow(),
+        ])]);
 
         let para = Paragraph::new(counter_text)
             .centered()
             .block(block);
         frame.render_widget(para,chunks[0]);
-        
-         let list_items: Vec<ListItem> = self.session.current_results()
+
+        let list_items: Vec<ListItem> = self.session.current_results()
             .iter()
             // .enumerVate() //gives i
             .map(|result| {
                 ListItem::new(format!("{}",result))
             })
-            .collect();
-        
+        .collect();
+
         let event_list = List::new(list_items)
             .block(Block::bordered().title(" Results "));
-            // .highlight_symbol(">> "); // Optional: if you add selection logic later
+        // .highlight_symbol(">> "); // Optional: if you add selection logic later
 
         frame.render_widget(event_list, chunks[1]);
 
