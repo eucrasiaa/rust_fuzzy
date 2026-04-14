@@ -115,9 +115,9 @@ impl SimilarityAlgorithm for SimAlgoGreedyV1 {
 impl Default for SimAlgoGreedyV1 {
     fn default() -> Self {
         Self {
-            bonus_bound: 1.0,
-            bonus_consec: 0.5,
-            bonus_start: 2.0,
+            bonus_bound: 10.0,
+            bonus_consec: 4.0,
+            bonus_start: 20.0,
         }
     }
 }
@@ -129,12 +129,43 @@ impl SimAlgoGreedyV1 {
 
     //byte index of matches (the fast fail here!)
     fn find_match_indices(&self, query: &str, target: &str) -> Option<Vec<usize>> {
-        todo!()
+        let mut matched_indexes:Vec<usize> = Vec::new();
+        //iter over targert search in queue
+        for (byte_idx, char) in query.char_indices() {
+            if target.contains(char) {
+                matched_indexes.push(byte_idx);
+            }
+        }
+        Some(matched_indexes)
+
+        // todo!()
     }
     
     //string + indexes, score it
     fn calculate_score(&self, target:&str, indices: &[usize]) -> f64 {
-        todo!()
+        if indices.is_empty() { return 0.0; }
+        let bytes = target.as_bytes();
+        let mut score = 0.0;
+        if indices.contains(&0) { score +=self.bonus_start; }
+        for window in indices.windows(2) {
+            let current = window[0];
+            let next = window[1];
+            
+            //consec
+            if next == current +1 {
+                score += self.bonus_consec;
+            }
+
+            //bound
+            if current > 0 {
+                let prev_byte = bytes[current - 1];
+                if prev_byte == b' ' || prev_byte == b'-' {
+                    score += self.bonus_bound;
+                }
+            }
+        }
+
+        score
     }
 }
 // fn fastFail:
