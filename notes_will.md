@@ -1,4 +1,47 @@
 
+
+
+### Original Structs Layout:
+```rust
+
+// the struct containing each string involved in a search. 
+// base list populated on init
+// needs heavy rework
+pub struct ScoreTarget<'a> {
+    pub text: &'a str,
+    pub weight_multiplier: f64, 
+    pub exact_match_only: bool, // where should this be tied to? feels... 
+							    // troublesome down the line
+}
+
+//using a trait to define parts of a struct to score + weights
+pub trait FuzzyCandidate {
+    // for structs, define which strings are included in scoring?
+    fn search_targets(&self) -> Vec<ScoreTarget>;
+    // from use statistics, later include ig
+    fn usage_bonus(&self) -> f64;
+}
+```
+
+
+``` rust
+// struct returned off a fzzy
+pub struct ScoredResult<'a, T> {
+    pub item: &'a T,
+    pub score: f64,
+}
+impl<'a, T> fmt::Display for ScoredResult<'a, T> 
+where 
+    T: fmt::Display 
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { 
+        write!(f, "[{:.2}] {}", self.score, self.item)
+    }
+}
+```
+
+
+
 desktop file locations:
 
 /usr/share/applications/
