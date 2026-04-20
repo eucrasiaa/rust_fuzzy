@@ -66,9 +66,11 @@ impl AlgoWillBasicGreedyVer1 {
         if indices.is_empty() { return 0; }
         let bytes = target.as_bytes();
         let mut score = 0;
+        let  mut scores_why = vec![0,0,0];
         // if is_empty() passed, then we know 0 will always exist, so safe
         if indices[0] == 0 { 
             score += self.bonus_start; 
+            scores_why[0] = 1;
         }
         // if indices.contains(&0) { score +=self.bonus_start; };
         //TODO this feels like a prime loop unrolling thing bc of 2 distinct  i > 0 cases
@@ -79,6 +81,7 @@ impl AlgoWillBasicGreedyVer1 {
             // consec only matters past elem 1 
             if i > 0 && current_idx == indices[i - 1] + 1 {
                 score += self.bonus_consec;
+                            scores_why[1] += 1;
             }
 
             // score += (curr == prev + 1) as i32 * self.bonus_consec;
@@ -89,8 +92,17 @@ impl AlgoWillBasicGreedyVer1 {
                 // score += (is_bound as i32 as f64) * self.bonus_bound;
                 if prev_byte == b' ' || prev_byte == b'-' || prev_byte == b'_' {
                     score += self.bonus_bound;
+                                                scores_why[2] +=1;
+
                 }
             }
+        }
+        if score != 0{
+            let joined = scores_why.iter()
+                    .map(|n| n.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", ");
+            println!("scored {} with {}", target, joined);
         }
         score
     }

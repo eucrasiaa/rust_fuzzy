@@ -4,14 +4,37 @@ Critically need to break up and generic a lot of stuff.
 Session is the fundamental object, stores:
 ```
 
-Session{
-	canidate_list
+pub struct SearchSession<'a,T:FuzzyCandidate,S:SimilarityAlgorithm>{
+	candidate_structs: &'a [T],
+	matcher: S,
+    current_query: String,
+    history: Vec<(
+        Vec<ScoredResult<'a, T>>, 
+        i64,                      
+        usize                     
+    )>, 
+    current_threshold: i64,
+    num_results: usize,
 }
+
+		impl<T> SearchSession<T> 
+		where 
+		    T: SomeTrait + AnotherTrait 
+		{
+
+pub struct SearchSession<'a,T,A>
+candidates: &'a [T]
+history: Vec<Vec<ScoredResult>>
+threshold_stack: Vec<f64>
+current_threshold: f64
+pub current_results()
+pub type_char() / backspace()
+
 
 ```
 
 maybe?
-
+![[Pasted image 20260420101805.png]]
 src/
 - fuzzy/
 	- mod rs
