@@ -83,7 +83,8 @@ impl<A: SimilarityAlgorithm> FuzzyMatcher<A> {
                 // let mut scoring_breakdown< = vec
                 // score all provided targets and keep the highest one
                 for target in item.search_targets() {
-                    println!("target: {}", target);
+                    //DEBUG_PRINT
+                    //println!("target: {}", target);
                     let score = if target.exact_match_only {
                         // strict substring check for tags
                         let length_of_target = target.text.len();

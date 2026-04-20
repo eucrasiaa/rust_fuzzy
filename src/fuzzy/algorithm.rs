@@ -97,13 +97,14 @@ impl AlgoWillBasicGreedyVer1 {
                 }
             }
         }
-        if score != 0{
-            let joined = scores_why.iter()
-                    .map(|n| n.to_string())
-                    .collect::<Vec<String>>()
-                    .join(", ");
-            println!("scored {} with {}", target, joined);
-        }
+        //DEBUG_PRINT
+        // if score != 0{
+        //     let joined = scores_why.iter()
+        //             .map(|n| n.to_string())
+        //             .collect::<Vec<String>>()
+        //             .join(", ");
+        //     println!("scored {} with {}", target, joined);
+        // }
         score
     }
 }

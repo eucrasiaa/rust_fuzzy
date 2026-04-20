@@ -44,16 +44,18 @@ where
         } else {
             self.candidate_structs.iter().collect()
         };
-         let joined = candidates_to_search.iter()
-            .map(|n| n.to_string())
-            .collect::<Vec<String>>()
-            .join("\n ");
-
-        println!("canidates: {}",joined);
+        //DEBUG_PRINT
+        //  let joined = candidates_to_search.iter()
+        //     .map(|n| n.to_string())
+        //     .collect::<Vec<String>>()
+        //     .join("\n ");
+        //
+        // println!("canidates: {}",joined);
         let new_results = self.matcher.search(&self.current_query, &candidates_to_search,self.current_threshold);
-        for result in &new_results {
-            println!("{}", result); 
-        }
+        //DEBUG_PRINT
+        // for result in &new_results {
+        //     println!("{}", result); 
+        // }
         let tmp_thresh = self.matcher.update_thresh(&new_results);
         let tmp_length = new_results.len();
 
