@@ -130,7 +130,8 @@ where
             .centered()
             .block(block);
         frame.render_widget(para,chunks[0]);
-
+        
+        // let list_items: Vec<ListItem> = self.session.current_results()
         let list_items: Vec<ListItem> = self.session.current_results()
             .iter()
             .enumerate()

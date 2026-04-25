@@ -17,6 +17,12 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 
 
+#[inline(always)]
+pub fn scale_weight(f: f64) -> i64 {
+    (f * 1024.0).round() as i64
+}
+
+
 #[derive(Debug)]
 pub struct DesktopEntity{
     /// id = filename.desktop
@@ -50,7 +56,7 @@ impl fmt::Display for AnimalEnt {
 impl FuzzyCandidate for AnimalEnt{
     fn search_targets(&self) -> Vec<ScoreTarget>{
         let targets = vec![
-            ScoreTarget { text: &self.name, weight_multiplier: 1.0, exact_match_only: false},
+            ScoreTarget { text: &self.name, weight_multiplier: scale_weight(1.0), exact_match_only: false},
         ];
         targets
     }
@@ -69,13 +75,13 @@ impl FuzzyCandidate for DesktopEntity {
         //generic w/ penalty
         targets.push(ScoreTarget {
             text: &self.name,
-            weight_multiplier: 1.0,
+            weight_multiplier: scale_weight(1.0),
             exact_match_only: false,
         });
         for tag in &self.tags {
             targets.push(ScoreTarget { 
                 text: tag, 
-                weight_multiplier: 0.1, 
+                weight_multiplier: scale_weight(0.1), 
                 exact_match_only: true
             });
         }

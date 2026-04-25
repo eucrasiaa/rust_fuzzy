@@ -46,11 +46,12 @@ impl<A: SimilarityAlgorithm> FuzzyMatcher<A> {
     //assumes sorted
     // pub fn update_thresh<'a, T>(&mut self, results: &[ScoredResult<'a, T>]) -> f64 {
     pub fn update_thresh<'a, T>(&mut self, results: &[ScoredResult<'a, T>]) ->i64  {
-
+        if results.is_empty() { return -1; }
+        if results.len() < 2 { return 10; }
+        let top_score = results[0].score;
         let mut max_diff = -1;
         let mut thrsh = -1;
-        // if results.is_empty() { return self.threshold }
-        if results.is_empty() { return -1 }
+        // if results.is_empty() { return -1 }
         for window in results.windows(2){  
             let prev = &window[0];
             let curr = &window[1];
@@ -62,7 +63,11 @@ impl<A: SimilarityAlgorithm> FuzzyMatcher<A> {
             }
         }
         // println!("{}",thrsh.max(10));
-        thrsh.max(10)
+        // give the results SOME leniency to prevent overagressive?
+        let mercy_floor = (top_score as f64 * 0.5) as i64;
+    
+        thrsh.min(mercy_floor).max(10)
+        // thrsh.max(10)
 
         // if let Some(res) = results.get(best_idx) {
         // self.threshold = res.score;
@@ -77,6 +82,7 @@ impl<A: SimilarityAlgorithm> FuzzyMatcher<A> {
         candidates: &[&'a T],
         threshold: i64,
     ) -> Vec<ScoredResult<'a, T>> {
+        let query_low = query.to_lowercase();
         let mut results: Vec<ScoredResult<'a, T>> = candidates
             .iter()
             .filter_map(|&item| {
@@ -88,8 +94,14 @@ impl<A: SimilarityAlgorithm> FuzzyMatcher<A> {
                     //println!("target: {}", target);
                     let score = if target.exact_match_only {
                         // strict substring check for tags
-                        let length_of_target = target.text.len();
-                        if target.text.to_lowercase().contains(&query.to_lowercase()) { 10*(length_of_target as i64) } else { 0 }
+                        // TODO WORK WITH NON ASCII? maybe helper
+                        // if target.text.eq_ignore_ascii_case(&query_low) {
+                        if contains_ignore_case(&target.text,&query_low){
+                            (target.text.len() as i64) * 10
+                        } else {
+                            0
+                        }
+
 
                     } else {
                         // TODO!!!
@@ -100,7 +112,8 @@ impl<A: SimilarityAlgorithm> FuzzyMatcher<A> {
                             // if target.text.to_lowercase().contains(&query.to_lowercase()) { 50.0 } else { 0.0 }
                             //TOTO!
                     };
-                    let weighted_score = ((score as f64) * target.weight_multiplier) as i64;
+                    let weighted_score = (score * target.weight_multiplier) >> 10;
+                    // let weighted_score = ((score as f64) * target.weight_multiplier) as i64;
                     if weighted_score > best_score {
                         best_score = weighted_score;
                     }
@@ -118,9 +131,17 @@ impl<A: SimilarityAlgorithm> FuzzyMatcher<A> {
             })
         .collect();
         //todo this feels odd.. gotta be better way
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(Ordering::Equal));
+        // maybe?
+        results.sort_unstable_by(|a, b| b.score.cmp(&a.score));
         results
     }
 
 }
-
+fn contains_ignore_case(target: &str, query_low: &str) -> bool {
+    if target.is_ascii() {
+        target.eq_ignore_ascii_case(query_low)
+    }
+    else{
+        target.to_lowercase().contains(query_low)
+    }
+}

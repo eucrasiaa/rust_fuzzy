@@ -74,7 +74,8 @@ where
         self.current_query.push(c); 
         // if there is a history last (culled list of strings) operate on that (to save effeciency)
         let candidates_to_search: Vec<&T> = if let Some((last_results, _score, _index)) = self.history.last() {
-            last_results.iter().map(|res| res.item).collect()
+            self.candidate_structs.iter().collect()
+            //last_results.iter().map(|res| res.item).collect()
         } else {
             self.candidate_structs.iter().collect()
         };
@@ -90,16 +91,17 @@ where
         // for result in &new_results {
         //     println!("{}", result); 
         // }
-        let tmp_thresh = self.current_threshold;
-        self.current_threshold = self.matcher.update_thresh(&new_results);
-        // let ret_thresh = if tmp_thresh == -1{
-        //     self.current_threshold}
-        // else{
-        //     tmp_thresh
-        // };
-        let tmp_length = self.num_results;
+        let hist_thresh = self.current_threshold;
+        let tmp_thresh = self.matcher.update_thresh(&new_results);
+        self.current_threshold  = if tmp_thresh == -1{
+            self.current_threshold
+        }
+        else{
+            tmp_thresh
+        };
+        let hist_length = self.num_results;
         self.num_results = new_results.len();
-        self.history.push((new_results,tmp_thresh,tmp_length));
+        self.history.push((new_results,hist_thresh,hist_length));
     }
 
 

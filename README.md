@@ -1,3 +1,13 @@
+TODO: 
+break apart some heavy functs (notibly within session)
+better document functions and structures
+
+adjust weights, some odd happenings due to proper culling
+
+
+FIX SCALING WEIGHTS THE FLOAT CONV IS EVILLLLLLLL
+maybe toggle an ascii or non acii mode with #features for optimization? idk brah
+
 refactoring
 
 trying to implement a fuzzyfinder for my launcher app

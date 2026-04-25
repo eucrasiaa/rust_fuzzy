@@ -22,7 +22,7 @@ impl Default for AlgoWillBasicGreedyVer1 {
     fn default() -> Self {
         Self {
             bonus_bound:  10,
-            bonus_consec: 20,
+            bonus_consec: 10,
             bonus_start: 20,
         }
     }
@@ -31,6 +31,9 @@ impl Default for AlgoWillBasicGreedyVer1 {
 impl AlgoWillBasicGreedyVer1 {
     pub fn new() -> Self {
         Self::default()
+    }
+    fn is_separator(&self, c: char) -> bool {
+        matches!(c, ' ' | '-' | '_')
     }
 
     //byte index of matches (the fast fail here!)
@@ -45,17 +48,19 @@ impl AlgoWillBasicGreedyVer1 {
         //     Some(c) => c,
         //     None => return None,
  
-        for (byte_idx, char) in target.char_indices() {
-            if char.eq_ignore_ascii_case(&current_q) {
-                // push match index to vec
+        for (byte_idx, t_char) in target.char_indices() {
+            let is_match = t_char.eq_ignore_ascii_case(&current_q) 
+                   || (self.is_separator(t_char) && self.is_separator(current_q));
+            if is_match {
                 matched_indexes.push(byte_idx);
-                //step next &  return when out of char
-                if let Some(next_q) = query_chars.next() {
-                    current_q = next_q;
-                } else {
-                    return Some(matched_indexes);
-                }
+        
+            if let Some(next_q) = query_chars.next() {
+                current_q = next_q;
+            } else {
+                // Found all query chars in sequence!
+                return Some(matched_indexes);
             }
+        }
         }
         None
     }
@@ -92,7 +97,7 @@ impl AlgoWillBasicGreedyVer1 {
                 // score += (is_bound as i32 as f64) * self.bonus_bound;
                 if prev_byte == b' ' || prev_byte == b'-' || prev_byte == b'_' {
                     score += self.bonus_bound;
-                                                scores_why[2] +=1;
+                    scores_why[2] +=1;
 
                 }
             }

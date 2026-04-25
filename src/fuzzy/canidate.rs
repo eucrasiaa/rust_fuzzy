@@ -6,8 +6,8 @@ use std::fmt;
 ///strings to score, their rules
 pub struct ScoreTarget<'a> {
     pub text: &'a str,
-    /// the weight
-    pub weight_multiplier: f64,
+    /// the weight. scale of 1024 and bit shifted in math! 1024 = 1.0, 512 = 0.5, etc.
+    pub weight_multiplier: i64, // NEW!!
     /// for smthn like tags? idk
     pub exact_match_only: bool, 
 }
