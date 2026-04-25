@@ -289,9 +289,11 @@ where
 desktop file locations:
 
 /usr/share/applications/
+-- system wide
 /usr/local/share/applications/
+-- smallest list here
 ~/.local/share/applications/
-
+-- user apps
 
 using std command spawn to just let ownership leave scope? 
 
