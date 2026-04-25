@@ -1,13 +1,21 @@
 mod old_main;
 // use old_main::*;
 mod fuzzy;
+mod app;
+use app::*;
 // use fuzzy::{AlgoWillBasicGreedyVer1, SimilarityAlgorithm};
 use fuzzy::*;
 use std::fmt;
 use crate::fuzzy::session::SearchSession;
 use ini::Ini;
+use std::io::Result;
 use std::fs;
 use std::path::Path;
+
+
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+
 
 #[derive(Debug)]
 pub struct DesktopEntity{
@@ -26,6 +34,31 @@ pub struct DesktopEntity{
     /// freq? todo
     launch_count: i64
 }
+
+pub struct AnimalEnt{
+    name:String,
+    freq:i64,
+} 
+
+impl fmt::Display for AnimalEnt {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} (freq: {:.2})", self.name, self.freq)
+    }
+}
+
+
+impl FuzzyCandidate for AnimalEnt{
+    fn search_targets(&self) -> Vec<ScoreTarget>{
+        let targets = vec![
+            ScoreTarget { text: &self.name, weight_multiplier: 1.0, exact_match_only: false},
+        ];
+        targets
+    }
+    fn usage_bonus(&self) -> i64{
+        self.freq + 5
+    }
+}
+
 
 impl FuzzyCandidate for DesktopEntity {
     fn search_targets(&self) -> Vec<ScoreTarget> {
@@ -51,6 +84,9 @@ impl FuzzyCandidate for DesktopEntity {
     fn usage_bonus(&self) -> i64 {
         //tweak this heavy LOL
         (self.launch_count as f64 * 1.2) as i64 
+    }
+    fn display_candidate(&self) -> String {
+        format!("{} ({})", self.name, self.exec)
     }
 }
 
@@ -92,7 +128,7 @@ impl fmt::Display for DesktopEntity {
     }
 }
 
-fn main(){
+fn main() -> Result<()>{
     // old_main::main().unwrap();
     // let new_greedy = AlgoWillBasicGreedyVer1::default();
      let applications_dir = Path::new("/usr/share/applications/");
@@ -117,14 +153,30 @@ fn main(){
     .filter_map(|entry| DesktopEntity::from_file(&entry.path()))
     .collect();
 
-    let mut session:SearchSession::<DesktopEntity, AlgoWillBasicGreedyVer1>= SearchSession::new(
-        &entities,
+
+    let file = File::open("justnames.txt").expect("Could not open file");
+    // let file = File::open("animallist.txt").expect("Could not open file");
+    let reader = BufReader::new(file);
+
+    let animals: Vec<AnimalEnt> = reader
+        .lines()
+        .map_while(Result::ok) // just incase? yells otherwisie 
+        .map(|name| AnimalEnt {
+            name: name.trim().to_string(),
+            freq: 1, // basically ignore 
+        })
+    .collect();
+
+
+    let mut session:SearchSession::<AnimalEnt, AlgoWillBasicGreedyVer1>= SearchSession::new(
+        &animals,
         FuzzyMatcher::with_algo(AlgoWillBasicGreedyVer1::new()), 
         String::new(),
         Vec::new(),
         0,
         0
     );
-    session.type_char::<AlgoWillBasicGreedyVer1>('V');
-    println!("hello world");
+
+    let mut my_fuzzy_app = FuzzyApp::new(session);
+    my_fuzzy_app.init()
 }

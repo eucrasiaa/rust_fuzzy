@@ -61,7 +61,8 @@ impl<A: SimilarityAlgorithm> FuzzyMatcher<A> {
                 // best_idx = i + 1;
             }
         }
-        return thrsh-10;
+        // println!("{}",thrsh.max(10));
+        thrsh.max(10)
 
         // if let Some(res) = results.get(best_idx) {
         // self.threshold = res.score;

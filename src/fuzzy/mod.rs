@@ -1,4 +1,3 @@
-
 pub mod algorithm;
 pub mod session;
 pub mod canidate;
