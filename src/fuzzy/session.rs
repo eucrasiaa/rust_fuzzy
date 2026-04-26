@@ -5,7 +5,6 @@ use super::canidate::*;
 
 
 
-use ratatui::widgets::ListItem;
 /// A Session is used for live character by character fuzzy searching.
 /// sessions exist to enable character by character typing searching wrapper for an algorithm
 
@@ -50,7 +49,6 @@ pub struct SearchSession<'a,T:FuzzyCandidate,S:SimilarityAlgorithm>{
     pub current_threshold: i64,
     pub num_results: usize,
     internal_state: InternalSerSesStats,
-    debug_stats: Vec<ListItem<'static>>
 }
 
 impl<'a,T,S> SearchSession<'a,T,S> 
@@ -73,7 +71,6 @@ where
                 len_query: 0,
                 // len_results: 0,
             },
-            debug_stats: Vec::new()
         }
     }
 
@@ -191,6 +188,7 @@ where
     //     }
     // }
 
+    
     pub fn curr_thresh(&self) -> i64{
         self.current_threshold
     }

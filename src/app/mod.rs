@@ -10,17 +10,12 @@ use crossterm::{
         terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
     execute,
 };
-use ratatui::{DefaultTerminal, widgets::List};
+use ratatui::{DefaultTerminal};
 use ratatui::widgets::ListState;
 use std::fmt::{Write, Arguments};
 use std::io::{Result,stdout};
 
 
-
-pub enum AppEvent {
-    Terminal(Event),
-    Mock(KeyEvent),
-}
 
 pub struct DebugStrings{
     num_debugs: usize,

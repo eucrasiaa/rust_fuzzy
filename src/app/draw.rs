@@ -1,28 +1,14 @@
 use super::FuzzyApp;
 use crate::fuzzy::{SimilarityAlgorithm,FuzzyCandidate};
-use std::time::Duration;
-use std::io::Result;
 
-use std::fmt::Write;
-
-use crossterm::{
-    event::{
-        self, KeyEventKind,
-        DisableFocusChange, DisableMouseCapture,
-        EnableFocusChange, EnableMouseCapture, Event, KeyCode, poll
-    },
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-    execute,
-};
+static ERROR_ITER: &str = "No String Hovered";
 use ratatui::{
-    buffer::Buffer,
-    layout::Rect,
     style::{Color, Style, Stylize},
     layout::{Constraint, Direction, Layout},
     symbols::border,
     text::{Line, Text, Span},
-    widgets::{Block, Paragraph, Widget,ListItem, List, Clear},
-    DefaultTerminal, Frame,
+    widgets::{Block, Paragraph, ListItem, List, Clear},
+    Frame,
 };
 impl<'a, T, A> FuzzyApp<'a, T, A>
 where
@@ -62,19 +48,26 @@ where
                 // let buf = self.debug_strs.next_buf();
                 // write!(buf, "[total: {}]", total_line).unwrap();
                 //
-                //
-        //         self.debug_strs.reset();
-        //         self.debug_strs.push_debug(format_args!("[total: {}]", total_line));
-        //         self.debug_strs.push_debug(format_args!("[active: {}]", active_line));
-        //         self.debug_strs.push_debug(format_args!("[dropped: {}]", dropped_line));
-        //         self.debug_strs.push_debug(format_args!("[hover index: {}]", self.hover_index));
-        //         let tui_db_list_vec: Vec<ListItem> = self.debug_strs.valid_strings()
-        // .iter()
-        // .map(|s| {
-        //     ListItem::new(Span::styled(s.as_str(), Style::default().fg(Color::Yellow)))
-        //
-        // })
-        // .collect();
+                
+                self.debug_strs.reset();
+                self.debug_strs.push_debug(format_args!("[total: {}]", total_line));
+                self.debug_strs.push_debug(format_args!("[active: {}]", active_line));
+                self.debug_strs.push_debug(format_args!("[dropped: {}]", dropped_line));
+                self.debug_strs.push_debug(format_args!("[hover index: {}]", self.hover_index));
+                self.debug_strs.push_debug(format_args!("[scroll_index index: {}]", self.scroll_index));
+                self.debug_strs.push_debug(format_args!("[treshold index: {}]", self.session.current_threshold));
+                let display = self.session.current_results()
+                    .get(self.hover_index - 1)
+                    .map(|res| res.item.display_text()) 
+                    .unwrap_or(ERROR_ITER);
+                self.debug_strs.push_debug(format_args!("[{}]", display));
+                let tui_db_list_vec: Vec<ListItem> = self.debug_strs.valid_strings()
+        .iter()
+        .map(|s| {
+            ListItem::new(Span::styled(s.as_str(), Style::default().fg(Color::Yellow)))
+                
+        })
+        .collect();
              //    let tui_total_line = ListItem::new(
              //        Span::styled(
              //            self.debug_strs.push_debug(format_args!("[total: {}]", total_line)),
@@ -99,32 +92,32 @@ where
              //    let tui_threshold_value = ListItem::new(
              //        Span::styled(self.debug_strs.push_debug(format_args!("[treshold: {}]",self.session.curr_thresh())), Style::default().fg(Color::LightRed)).into_centered_line());
 
-                let tui_total_line = ListItem::new(
-                    Span::styled(format!("[total: {}]",total_line),Style::default().fg(Color::Red)).into_centered_line());        
-                let tui_active_line = ListItem::new(
-                    Span::styled(format!("[active: {}]",active_line), Style::default().fg(Color::Green)).into_centered_line());
-                let tui_dropped_line = ListItem::new(
-                    Span::styled(format!("[dropped: {}]",dropped_line), Style::default().fg(Color::Yellow)).into_centered_line());
+                // let tui_total_line = ListItem::new(
+                //     Span::styled(format!("[total: {}]",total_line),Style::default().fg(Color::Red)).into_centered_line());        
+                // let tui_active_line = ListItem::new(
+                //     Span::styled(format!("[active: {}]",active_line), Style::default().fg(Color::Green)).into_centered_line());
+                // let tui_dropped_line = ListItem::new(
+                //     Span::styled(format!("[dropped: {}]",dropped_line), Style::default().fg(Color::Yellow)).into_centered_line());
+                //
+                // let tui_hovering_index = ListItem::new(
+                //     Span::styled(format!("[hover index: {}]",self.hover_index), Style::default().fg(Color::LightGreen)).into_centered_line());
+                //
+                // let tui_scroll_index = ListItem::new(
+                //     Span::styled(format!("[scroll index: {}]",self.scroll_index), Style::default().fg(Color::LightGreen)).into_centered_line());
+                // let tui_threshold_value = ListItem::new(
+                //     Span::styled(format!("[treshold: {}]",self.session.curr_thresh()), Style::default().fg(Color::LightRed)).into_centered_line());
+                //
 
-                let tui_hovering_index = ListItem::new(
-                    Span::styled(format!("[hover index: {}]",self.hover_index), Style::default().fg(Color::LightGreen)).into_centered_line());
-
-                let tui_scroll_index = ListItem::new(
-                    Span::styled(format!("[scroll index: {}]",self.scroll_index), Style::default().fg(Color::LightGreen)).into_centered_line());
-                let tui_threshold_value = ListItem::new(
-                    Span::styled(format!("[treshold: {}]",self.session.curr_thresh()), Style::default().fg(Color::LightRed)).into_centered_line());
-
-
-                let tui_str_hovering_value = if self.hover_index==0{
-                    String::from("No String Hovered")
-                } else {
-                    match self.session.current_results().get(self.hover_index-1){
-                        Some(k) => format!("{k}"),
-                        None => String::from("Error Iterating String")
-                    }
-                };
-                let tui_hovering_value = ListItem::new(
-                    Span::styled(format!("[selected: {}]",tui_str_hovering_value), Style::default().fg(Color::Cyan)).into_centered_line());
+                // let tui_str_hovering_value = if self.hover_index==0{
+                //     String::from("No String Hovered")
+                // } else {
+                //     match self.session.current_results().get(self.hover_index-1){
+                //         Some(k) => format!("{k}"),
+                //         None => String::from("Error Iterating String")
+                //     }
+                // };
+                // let tui_hovering_value = ListItem::new(
+                //     Span::styled(format!("[selected: {}]",tui_str_hovering_value), Style::default().fg(Color::Cyan)).into_centered_line());
 
                 // let history_data = self.session.display_history();
                 //     let history_list_items: Vec<ListItem> = history_data
@@ -137,14 +130,14 @@ where
                 //     })
                 //     .collect();
 
-                let tui_db_list_vec = vec![
-                    tui_total_line,tui_active_line,tui_dropped_line,
-                    tui_threshold_value,
-                    tui_hovering_index, 
-                    tui_scroll_index,
-                    tui_hovering_value, 
-                ];
-
+                // let mut tui_db_list_vec = vec![
+                //     tui_total_line,tui_active_line,tui_dropped_line,
+                //     tui_threshold_value,
+                //     tui_hovering_index, 
+                //     tui_scroll_index,
+                //     tui_hovering_value, 
+                // ];
+                //
                 // tui_db_list_vec.extend(history_list_items);
                 let db_title=Line::from(" Debug Statistics ").bold();
 
@@ -195,23 +188,23 @@ where
         //     })
         // .collect();
         self.sync_scroll(max_draw_lines);
+        //TODO Consider gutting hover and just let enumerate here handle it?
         let list_items: Vec<ListItem> = self.session.current_results()
             .iter()
-            .enumerate() // We need 'i' to check for hover/scroll
             .skip(self.scroll_index)
             .take(max_draw_lines+10)
-            .map(|(i, result)| {
+            .map(|result| {
 
-        let mut buffer = itoa::Buffer::new();
-        let score_str = buffer.format(result.score);
+                let mut buffer = itoa::Buffer::new();
+                let score_str = buffer.format(result.score);
 
-        let mut line = Line::from(vec![
-            Span::styled(format!("[{}] ", score_str), Style::default().fg(Color::DarkGray)),
-            Span::raw(result.item.display_text()), // ptr to 
-        ]);
+                let line = Line::from(vec![
+                    Span::styled(format!("[{}] ", score_str), Style::default().fg(Color::DarkGray)),
+                    Span::raw(result.item.display_text()), // ptr to 
+                ]);
 
-            ListItem::new(line)
-    })
+                ListItem::new(line)
+            })
             // .iter()
             // .map(|result| {
             //         ListItem::new(format!("{}",result))

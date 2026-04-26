@@ -1,7 +1,6 @@
 use super::algorithm::{SimilarityAlgorithm,AlgoWillBasicGreedyVer1};
 use super::canidate::*;
 
-use std::cmp::Ordering;
 
 
 
@@ -132,16 +131,26 @@ impl<A: SimilarityAlgorithm> FuzzyMatcher<A> {
         .collect();
         //todo this feels odd.. gotta be better way
         // maybe?
-        results.sort_unstable_by(|a, b| b.score.cmp(&a.score));
+        // results.sort_unstable_by(|a, b| b.score.cmp(&a.score));
+        results.sort_unstable_by_key(|b| std::cmp::Reverse(b.score));
         results
     }
 
 }
+// fn contains_ignore_case(target: &str, query_low: &str) -> bool {
+//     if target.is_ascii() {
+//         target.eq_ignore_ascii_case(query_low)
+//     }
+//     else{
+//         target.to_lowercase().contains(query_low)
+//     }
+// }
 fn contains_ignore_case(target: &str, query_low: &str) -> bool {
-    if target.is_ascii() {
-        target.eq_ignore_ascii_case(query_low)
-    }
-    else{
+    if target.is_ascii() && query_low.is_ascii() {
+        target.as_bytes()
+            .windows(query_low.len())
+            .any(|window| window.eq_ignore_ascii_case(query_low.as_bytes()))
+    } else {
         target.to_lowercase().contains(query_low)
     }
 }

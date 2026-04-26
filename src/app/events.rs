@@ -1,27 +1,14 @@
 use super::FuzzyApp;
 use crate::fuzzy::{SimilarityAlgorithm,FuzzyCandidate};
-use std::{thread::sleep, time::Duration};
+use std::time::Duration;
 use std::io::Result;
 
-use crossterm::{
+use crossterm::
     event::{
         self, KeyEventKind,KeyEvent,
-        DisableFocusChange, DisableMouseCapture,
-        EnableFocusChange, EnableMouseCapture, Event, KeyCode, poll
-    },
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-    execute,
-};
-use ratatui::{
-    buffer::Buffer,
-    layout::Rect,
-    style::{Color, Style, Stylize},
-    layout::{Constraint, Direction, Layout},
-    symbols::border,
-    text::{Line, Text, Span},
-    widgets::{Block, Paragraph, Widget,ListItem, List, Clear},
-    DefaultTerminal, Frame,
-};
+        Event, KeyCode, poll
+    }
+;
 
 impl<'a, T, A> FuzzyApp<'a, T, A>
 where
@@ -59,12 +46,13 @@ where
             // sleep(Duration::from_millis(16));
             return Ok(());
         }
-
+        // TODO consider just allowing for blocking? any reason not to?
         if poll(Duration::from_millis(16))? {
-            if let Event::Key(key) = event::read()? {
-                if key.kind == KeyEventKind::Press {
+            match event::read()? {
+                Event::Key(key) if key.kind == KeyEventKind::Press => {
                     self.process_key(key);
                 }
+                _ => (),
             }
         }
         Ok(())
