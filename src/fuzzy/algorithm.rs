@@ -77,16 +77,14 @@ impl AlgoWillBasicGreedyVer1 {
         }
         // if indices.contains(&0) { score +=self.bonus_start; };
         //TODO this feels like a prime loop unrolling thing bc of 2 distinct  i > 0 cases
-
+        // no thats stupid... trust the compiler  Will cmonn
         for i in 0..indices.len() {
             let current_idx = indices[i];
 
             // consec only matters past elem 1 
-            if i > 0 && current_idx == indices[i - 1] + 1 {
-                score += self.bonus_consec;
-            }
-
-            // score += (curr == prev + 1) as i32 * self.bonus_consec;
+            // if i > 0 && current_idx == indices[i - 1] + 1 {
+            //     score += self.bonus_consec;
+            // }
             if current_idx > 0 {
                 let prev_byte = bytes[current_idx - 1];
                 // bounds = ' ', -, or _
