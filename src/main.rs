@@ -200,25 +200,25 @@ fn main() -> Result<()>{
     );
 
     let mut my_fuzzy_app = FuzzyApp::new(session);
-    my_fuzzy_app.is_profiling= true;
-    let demo_strings_1 = vec!["eeee","bbbb","blackbird","aaaaaaaa","--aa--aa--","aeiou","abcdefghijk"];
-    let demo_strings_2 = vec![
-    "Axolotl",            
-    "Gnu",                
-    "Hummingbird",
-    "aaeeaaee",
-    " Buffalo",      
-    "Crow\n",             
-    "BlackCat",         
-    "C0nd0r",             
-    "fiissh...",           
-    "adeeeeal",      
-];
-    my_fuzzy_app.mock_keys = [
-        strings_to_events(demo_strings_1),
-        strings_to_events(demo_strings_2),
-    ].into_iter().flatten().collect();
-    // my_fuzzy_app.mock_keys.push(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
+//     my_fuzzy_app.is_profiling= true;
+//     let demo_strings_1 = vec!["eeee","bbbb","blackbird","aaaaaaaa","--aa--aa--","aeiou","abcdefghijk"];
+//     let demo_strings_2 = vec![
+//     "Axolotl",            
+//     "Gnu",                
+//     "Hummingbird",
+//     "aaeeaaee",
+//     " Buffalo",      
+//     "Crow\n",             
+//     "BlackCat",         
+//     "C0nd0r",             
+//     "fiissh...",           
+//     "adeeeeal",      
+// ];
+//     my_fuzzy_app.mock_keys = [
+//         strings_to_events(demo_strings_1),
+//         strings_to_events(demo_strings_2),
+//     ].into_iter().flatten().collect();
+//     // my_fuzzy_app.mock_keys.push(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
     my_fuzzy_app.init()
 }
 fn strings_to_events(inputs: Vec<&str>) -> Vec<KeyEvent> {

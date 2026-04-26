@@ -113,7 +113,10 @@ where
     fn kp_backspace(&mut self){
         self.list_state.select_first();
         // println!("backsopaced");
+        // if no results, 0. else, 1
         self.session.backspace(); 
+        self.hover_index = (self.session.num_results > 0) as usize;
+
     }
     fn kp_arrow_up(&mut self){
         self.list_state.select_previous();

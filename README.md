@@ -1,5 +1,9 @@
 TODO: 
+
 break apart some heavy functs (notibly within session)
+FIX STATE TRACKING IT WAS BUGGED
+also make get_current() or whatever not pull from history but curernt_resutls
+
 better document functions and structures
 
 

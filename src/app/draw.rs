@@ -54,6 +54,8 @@ where
                 self.debug_strs.push_debug(format_args!("[dropped: {}]", dropped_line));
                 self.debug_strs.push_debug(format_args!("[hover index: {}]", self.hover_index));
                 self.debug_strs.push_debug(format_args!("[scroll_index index: {}]", self.scroll_index));
+                self.debug_strs.push_debug(format_args!("[select index: {}]", self.list_state.selected().unwrap_or_default()));
+                
                 self.debug_strs.push_debug(format_args!("[treshold index: {}]", self.session.current_threshold));
                 let display = self.session.current_results()
                     .get(self.hover_index.saturating_sub(1))

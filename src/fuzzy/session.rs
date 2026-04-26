@@ -46,6 +46,9 @@ pub struct SearchSession<'a,T:FuzzyCandidate,S:SimilarityAlgorithm>{
         i64,                      
         usize                     
     )>, 
+
+    /// current statusu
+    pub current_results: Vec<ScoredResult<'a, T>>,
     pub current_threshold: i64,
     pub num_results: usize,
     internal_state: InternalSerSesStats,
@@ -64,6 +67,7 @@ where
     )>, current_threshold: i64, num_results: usize) -> Self {
         Self { candidate_structs, matcher, current_query, history, current_threshold, 
             num_results, 
+            current_results: Vec::new(),
             internal_state: InternalSerSesStats { 
                 len_canidates: candidate_structs.len(), 
                 hist_length: 0, 
@@ -74,55 +78,59 @@ where
         }
     }
 
-    /// TODO break into chunks its doing a lot nr 
+    /// TODID that !!!
     pub fn type_char(&mut self, c: char) {
         self.current_query.push(c); 
-        // if there is a history last (culled list of strings) operate on that (to save effeciency)
-        let candidates_to_search: Vec<&T> = if let Some((last_results, _score, _index)) = self.history.last() {
-            // self.candidate_structs.iter().collect()
-            last_results.iter().map(|res| res.item).collect()
-        } else {
+
+
+        // let candidates_to_search: Vec<&T> = if let Some((last_results, _score, _index)) = self.history.last() {
+        //     // self.candidate_structs.iter().collect()
+        //     last_results.iter().map(|res| res.item).collect()
+        // } else {
+        //     self.candidate_structs.iter().collect()
+        // };
+        // if history = empty, its the first press so  
+        let candidates_to_search: Vec<&T> = if self.history.is_empty() {
             self.candidate_structs.iter().collect()
+        } else {
+            self.current_results.iter().map(|res| res.item).collect()
         };
-        //DEBUG_PRINT
-        //  let joined = candidates_to_search.iter()
-        //     .map(|n| n.to_string())
-        //     .collect::<Vec<String>>()
-        //     .join("\n ");
-        //
-        // println!("canidates: {}",joined);
-        let new_results = self.matcher.search(&self.current_query, &candidates_to_search,self.current_threshold);
-        //DEBUG_PRINT
-        // for result in &new_results {
-        //     println!("{}", result); 
-        // }
-        let hist_thresh = self.current_threshold;
+
+
+        // !! generate updated list
+        let new_results = self.matcher.search(&self.current_query, &candidates_to_search, self.current_threshold);
         let tmp_thresh = self.matcher.update_thresh(&new_results);
-        self.current_threshold  = if tmp_thresh == -1{
-            self.current_threshold
-        }
-        else{
-            tmp_thresh
-        };
-        let hist_length = self.num_results;
-        self.num_results = new_results.len();
-        self.history.push((new_results,hist_thresh,hist_length));
+        let new_thresh = if tmp_thresh == -1 { self.current_threshold } else { tmp_thresh };
+        let new_length = new_results.len();
+
+
+        // swapp?
+        let old_results = std::mem::replace(&mut self.current_results, new_results);
+        self.history.push((old_results, self.current_threshold, self.num_results));
+        
+        // update current! 
+        self.current_threshold = new_thresh;
+        self.num_results = new_length;
     }
 
 
     fn append_internal(&mut self, type_update:KeyStrokeUpdate){
         match type_update {
             KeyStrokeUpdate::STANDARDCHAR => {
-                self.internal_state.len_query +=1;
-                if self.internal_state.len_query == 1 {
-                    self.current_query.chars().nth(0).unwrap_or('\0');
-
-                }
+                self.internal_state.len_query += 1;
+                    if self.internal_state.len_query == 1 {
+                        self.internal_state.query_prefix = self.current_query.chars().next().unwrap_or('\0');
+                    }
+                    self.internal_state.hist_length = self.internal_state.len_query;
             },
             KeyStrokeUpdate::BACKSPACE => {
-                if self.internal_state.len_query > 0{
-                    self.internal_state.len_query-=1;
+                if self.internal_state.len_query > 0 {
+                    self.internal_state.len_query -= 1;
+                    if self.internal_state.len_query == 0 {
+                        self.internal_state.query_prefix = '\0';
+                    }
                 }
+                self.internal_state.hist_length = self.internal_state.len_query;
             },
             KeyStrokeUpdate::COMMAND =>{
                 todo!()
@@ -146,33 +154,40 @@ where
 
     }
     pub fn backspace(&mut self) {
-    // 1. Remove the last character from the query string
+    // try to pop from query
     if self.current_query.pop().is_some() {
         
-        // 2. Remove the matching history entry
-        self.history.pop();
-
-        // 3. Revert state to the NEW top of the stack
-        if let Some((_results, prev_thresh, prev_length)) = self.history.last() {
-            // We found a previous state! Revert to it.
-            self.current_threshold = *prev_thresh;
-            self.num_results = *prev_length;
+        // yo wtf was i DOING heree LMFAO??? no wonder it was bugging out crazy
+        if let Some((past_results, past_thresh, past_length)) = self.history.pop(){
+            // load past
+            self.current_results = past_results;
+            self.current_threshold = past_thresh;
+            self.num_results = past_length;
         } else {
-            // The stack is empty (we deleted the last char)
-            // Reset to "all apps" initial state
+            // fallback error case?
+            //  is there a need to make a helper probably not 
+            self.history.clear();
             self.current_threshold = 0;
             self.num_results = self.internal_state.len_canidates;
+            self.current_results.clear();
         }
-
-        self.append_internal(KeyStrokeUpdate::BACKSPACE);
     }
 
-    // 4. Safety Reset: If query is empty, ensure history is totally clear
+    // cant pop, so we nuke history and reset to initial state?
+    // memoization... theres gotta be somethjing here 
     if self.current_query.is_empty() {
         self.history.clear();
         self.current_threshold = 0;
         self.num_results = self.internal_state.len_canidates;
+        self.current_results.clear();
+        // self.current_results = self.candidate_structs
+        //     .iter()
+        //     .map(|item| ScoredResult { item, score: 0 })
+        //     .collect();
+        
     }
+    self.append_internal(KeyStrokeUpdate::BACKSPACE);
+
 }
     // KeyCode::Backspace => {
     //     self.keystrokes.pop();
