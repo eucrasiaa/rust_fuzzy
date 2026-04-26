@@ -1,4 +1,4 @@
-mod old_main;
+// mod old_main;
 // use old_main::*;
 mod fuzzy;
 mod app;
@@ -152,7 +152,7 @@ impl fmt::Display for DesktopEntity {
 fn main() -> Result<()>{
     // old_main::main().unwrap();
     // let new_greedy = AlgoWillBasicGreedyVer1::default();
-     let applications_dir = Path::new("/usr/share/applications/");
+     // let applications_dir = Path::new("/usr/share/applications/");
 
     // // Iterate over the directory
     // if let Ok(entries) = fs::read_dir(applications_dir) {
@@ -166,14 +166,14 @@ fn main() -> Result<()>{
     //         }
     //     }
     // }
-    let entities: Vec<DesktopEntity> = fs::read_dir(applications_dir)
-    .ok()
-    .into_iter()
-    .flat_map(|entries| entries.flatten())
-    .filter(|entry| entry.path().extension().map_or(false, |ext| ext == "desktop"))
-    .filter_map(|entry| DesktopEntity::from_file(&entry.path()))
-    .collect();
-
+    // let entities: Vec<DesktopEntity> = fs::read_dir(applications_dir)
+    // .ok()
+    // .into_iter()
+    // .flat_map(|entries| entries.flatten())
+    // .filter(|entry| entry.path().extension().map_or(false, |ext| ext == "desktop"))
+    // .filter_map(|entry| DesktopEntity::from_file(&entry.path()))
+    // .collect();
+    //
 
     let file = File::open("justnames.txt").expect("Could not open file");
     // let file = File::open("animallist.txt").expect("Could not open file");
@@ -218,6 +218,7 @@ fn main() -> Result<()>{
         strings_to_events(demo_strings_1),
         strings_to_events(demo_strings_2),
     ].into_iter().flatten().collect();
+    // my_fuzzy_app.mock_keys.push(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
     my_fuzzy_app.init()
 }
 fn strings_to_events(inputs: Vec<&str>) -> Vec<KeyEvent> {

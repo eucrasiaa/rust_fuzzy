@@ -10,3 +10,6 @@ ratatui = "0.30.0"
 rust-ini = "0.21.3"
 tui-input = "0.15.1"
 walkdir = "2.5.0"
+[profile.release]
+debug = true
+
