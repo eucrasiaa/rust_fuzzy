@@ -3,6 +3,8 @@ use crate::fuzzy::FuzzyMatcher;
 use super::algorithm::{SimilarityAlgorithm};
 use super::canidate::*;
 
+
+
 /// A Session is used for live character by character fuzzy searching.
 /// sessions exist to enable character by character typing searching wrapper for an algorithm
 
@@ -11,11 +13,13 @@ struct InternalSerSesStats{
     len_canidates: usize,
     hist_length: usize,
     query_prefix: char,
-    query_len: usize,
+    len_query: usize,
+    // len_results:usize,
+
 }
 impl Default for InternalSerSesStats{
     fn default() -> Self {
-        Self{len_canidates:0,hist_length:0, query_prefix: '\0', query_len: 0}
+        Self{len_canidates:0,hist_length:0, query_prefix: '\0', len_query: 0}
     }
 }
 
@@ -64,7 +68,8 @@ where
                 len_canidates: candidate_structs.len(), 
                 hist_length: 0, 
                 query_prefix: '\0',
-                query_len: 0,
+                len_query: 0,
+                // len_results: 0,
             },
         }
     }
@@ -74,8 +79,8 @@ where
         self.current_query.push(c); 
         // if there is a history last (culled list of strings) operate on that (to save effeciency)
         let candidates_to_search: Vec<&T> = if let Some((last_results, _score, _index)) = self.history.last() {
-            self.candidate_structs.iter().collect()
-            //last_results.iter().map(|res| res.item).collect()
+            // self.candidate_structs.iter().collect()
+            last_results.iter().map(|res| res.item).collect()
         } else {
             self.candidate_structs.iter().collect()
         };
@@ -108,15 +113,15 @@ where
     fn append_internal(&mut self, type_update:KeyStrokeUpdate){
         match type_update {
             KeyStrokeUpdate::STANDARDCHAR => {
-                self.internal_state.query_len +=1;
-                if self.internal_state.query_len == 1 {
+                self.internal_state.len_query +=1;
+                if self.internal_state.len_query == 1 {
                     self.current_query.chars().nth(0).unwrap_or('\0');
 
                 }
             },
             KeyStrokeUpdate::BACKSPACE => {
-                if self.internal_state.query_len > 0{
-                    self.internal_state.query_len-=1;
+                if self.internal_state.len_query > 0{
+                    self.internal_state.len_query-=1;
                 }
             },
             KeyStrokeUpdate::COMMAND =>{
@@ -129,8 +134,8 @@ where
     }
     /// if full sync needed. generally will be updated off a backpace or type_char call
     fn update_internal(&mut self){
-        self.internal_state.query_len = self.current_query.len();
-        self.internal_state.query_prefix = if self.internal_state.query_len > 0{
+        self.internal_state.len_query = self.current_query.len();
+        self.internal_state.query_prefix = if self.internal_state.len_query > 0{
             // validate length before, only chars can be pushed to this will always be safe
             self.current_query.chars().nth(0).unwrap_or('\0')
         }
@@ -183,6 +188,7 @@ where
     //     }
     // }
 
+    
     pub fn curr_thresh(&self) -> i64{
         self.current_threshold
     }
@@ -190,13 +196,21 @@ where
         self.history.last().map(|(v,_past_thresh,_past_length)| v.as_slice()).unwrap_or(&[])
     }
 
+    // pub fn current_results_range(&self, start:usize, limit:usize) -> &[ScoredResult<'a, T>] {
+    //     self.history.last().iter()
+    //         .skip(start)
+    //         .take(limit)
+    //         .for_each(|(v,_past_thresh,_past_length)| v.as_slice()).unwrap_or(&[])
+    //
+    // }
+
     // mostly debug stuff at this point
     pub fn len_canidates(&self)->usize{
         self.internal_state.len_canidates
 
     }
     pub fn len_query(&self)->usize {
-        self.internal_state.query_len
+        self.internal_state.len_query
     }
     pub fn query_prefix(&self)->char {
         self.internal_state.query_prefix
@@ -207,6 +221,9 @@ where
     pub fn current_query(&self)->&str{
         &self.current_query
     }
+    // pub fn len_results(&self)->usize{
+    //     self.internal_state.len_results
+    // }
     pub fn display_history(&self) -> Vec<String> {
         let mut to_ret: Vec<String> = Vec::new();
         

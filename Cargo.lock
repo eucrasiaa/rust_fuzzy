@@ -1710,6 +1710,7 @@ name = "will_fuzzy"
 version = "0.1.0"
 dependencies = [
  "crossterm",
+ "itoa",
  "ratatui",
  "rust-ini",
  "tui-input",
