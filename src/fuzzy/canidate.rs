@@ -25,6 +25,7 @@ pub trait FuzzyCandidate {
     fn search_targets(&self) -> Vec<ScoreTarget>;
     /// from use statistics, later include ig
     fn usage_bonus(&self) -> i64;
+    fn display_text(&self) -> &str;
     fn display_candidate(&self) -> String {
         self.search_targets()
             .iter()
@@ -44,7 +45,7 @@ where
     T: FuzzyCandidate
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { 
-        write!(f, "[{:.2}] {}", self.score, self.item.display_candidate())
+        write!(f, "[{:.2}] {}", self.score, self.item.display_text())
     }
 }
 
