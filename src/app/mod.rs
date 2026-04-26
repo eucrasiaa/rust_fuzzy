@@ -4,7 +4,7 @@ mod draw;
 mod events;
 use events::*;
 use draw::*;
-use crate::fuzzy::{SearchSession, SimilarityAlgorithm, FuzzyCandidate};
+use crate::fuzzy::{SearchSession, SimilarityAlgorithm, FuzzyCandidate,ScoredResult};
 use crossterm::{
     event::{Event, DisableFocusChange, DisableMouseCapture, EnableFocusChange, EnableMouseCapture,KeyEvent},
         terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
@@ -57,7 +57,8 @@ impl DebugStrings {
         self.open_str = (self.open_str + 1) % self.num_debugs; 
         &mut self.debug_total_bufs[idx]
     }
-    // maybe? 
+    // maybe?
+    #[inline]
     pub fn push_debug(&mut self, args: Arguments) {
         let buf = self.next_buf();
         buf.clear();
@@ -85,6 +86,7 @@ where
     pub list_state: ratatui::widgets::ListState,
     pub debug_strs: DebugStrings,
 
+    // pub current_results: Vec<ScoredResult<'a, T>>,
     pub mock_keys: Vec<KeyEvent>,
     pub is_profiling: bool,
 }

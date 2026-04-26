@@ -34,7 +34,7 @@ where
 
                 let title = Line::from(" Animal Searcher ").bold();
                 let total_line = self.session.len_canidates();
-                let active_line = self.session.current_results().len();
+                let active_line = self.session.num_results;
                 let dropped_line = total_line-active_line;
                 // let title_bottom = Line::from(format!("[total:{}] [active:{}] [dropped:{}]",)).yellow();
                 // let title_bottom = Line::from(vec![
@@ -48,7 +48,6 @@ where
                 // let buf = self.debug_strs.next_buf();
                 // write!(buf, "[total: {}]", total_line).unwrap();
                 //
-                
                 self.debug_strs.reset();
                 self.debug_strs.push_debug(format_args!("[total: {}]", total_line));
                 self.debug_strs.push_debug(format_args!("[active: {}]", active_line));
@@ -57,7 +56,7 @@ where
                 self.debug_strs.push_debug(format_args!("[scroll_index index: {}]", self.scroll_index));
                 self.debug_strs.push_debug(format_args!("[treshold index: {}]", self.session.current_threshold));
                 let display = self.session.current_results()
-                    .get(self.hover_index - 1)
+                    .get(self.hover_index.saturating_sub(1))
                     .map(|res| res.item.display_text()) 
                     .unwrap_or(ERROR_ITER);
                 self.debug_strs.push_debug(format_args!("[{}]", display));

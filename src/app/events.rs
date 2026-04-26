@@ -76,6 +76,7 @@ where
         self.hover_index = if self.session.num_results > 0 { 1 } else { 0 };
     }
     /// sync displayed list of outputs (scrolling)
+    #[inline]
     pub (crate) fn sync_scroll(&mut self, num_line:usize){
         // let new_index = self.hover_index-1;
         // //up

@@ -24,6 +24,7 @@ pub fn scale_weight(f: f64) -> i64 {
 }
 
 
+
 #[derive(Debug)]
 pub struct DesktopEntity{
     /// id = filename.desktop
