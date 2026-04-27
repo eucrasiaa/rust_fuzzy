@@ -37,13 +37,52 @@ pub trait DebugAlgo:SimilarityAlgorithm{
 }
 
 pub trait MatchReporter {
-    fn on_step(&mut self, target: &str, current_idx: usize, query_char: char, matched: bool, score_diff: i64);
+    /// Called every iteration of the while loop
+    fn on_step(&mut self, target: &[u8], t_idx: usize, query: &[u8], q_idx: usize, matched: bool);
+    
+    /// Called when a match is found to report specific bonuses
+    fn on_bonus(&mut self, name: &'static str, amount: i64, current_total: i64);
+    
+    /// Called at the very end
+    fn on_complete(&mut self, final_score: i64, fully_matched: bool);
 }
-// no op for telemetry? idk i saw on a forum
+
 impl MatchReporter for () {
-    #[inline(always)]
-    fn on_step(&mut self, _: &str, _: usize, _: char, _: bool, _: i64) {}
+    #[inline(always)] fn on_step(&mut self, _: &[u8], _: usize, _: &[u8], _: usize, _: bool) {}
+    #[inline(always)] fn on_bonus(&mut self, _: &'static str, _: i64, _: i64) {}
+    #[inline(always)] fn on_complete(&mut self, _: i64, _: bool) {}
 }
-pub struct DebugReporter {
+pub struct VerboseReporter {
     pub steps: Vec<String>,
+}
+
+impl MatchReporter for VerboseReporter {
+    fn on_step(&mut self, target: &[u8], t_idx: usize, query: &[u8], q_idx: usize, matched: bool) {
+        let mut line = String::new();
+        for (i, &byte) in target.iter().enumerate() {
+            let c = byte as char;
+            if i == t_idx {
+                // Highlight current cursor in Yellow
+                line.push_str(&format!("\x1b[1;33m[{}]\x1b[0m", c));
+            } else {
+                line.push(c);
+            }
+        }
+        
+        let status = if matched { "\x1b[32mMATCH\x1b[0m" } else { "skip " };
+        let q_char = query[q_idx] as char;
+        
+        self.steps.push(format!("{} | Query: '{}' -> {}", line, q_char, status));
+    }
+
+    fn on_bonus(&mut self, name: &'static str, amount: i64, current: i64) {
+        if let Some(last) = self.steps.last_mut() {
+            last.push_str(&format!(" \x1b[1;34m+{}{} ({})\x1b[0m", amount, name, current));
+        }
+    }
+
+    fn on_complete(&mut self, final_score: i64, fully_matched: bool) {
+        let color = if fully_matched { "\x1b[1;32m" } else { "\x1b[1;31m" };
+        self.steps.push(format!("{}--- Result: {} ---", color, final_score));
+    }
 }

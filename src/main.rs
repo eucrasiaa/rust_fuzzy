@@ -233,19 +233,32 @@ fn main() -> Result<()>{
 //         strings_to_events(demo_strings_1),
 //         strings_to_events(demo_strings_2),
 //     ].into_iter().flatten().collect();
-//     // my_fuzzy_app.mock_keys.push(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
+//     my_fuzzy_app.mock_keys.push(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
     my_fuzzy_app.init()
-    //
-    // let target = "123 Generic Fuzzy Tester Street, House #4, Maryland, USA".to_ascii_lowercase().to_string();
-    // let query = "123 Ge Fuzz Testr St Hs 4 MD USA".to_ascii_lowercase().to_string();
-    // let query2 = "3 eneric uzzy ester treet ouse 4 aryland usa".to_ascii_lowercase().to_string();
-    // let vecs = vec![
-    //     query,query2
+    // //
+    // let target = "123 Generic Fuzzy Tester Street, House #4, Maryland, USA".to_ascii_lowercase();
+    // let target_bytes = target.as_bytes();
+    // let queries = vec![
+    //     "123 Ge Fuzz Testr St Hs 4 MD USA".to_ascii_lowercase(),
+    //     "3 eneric uzzy ester treet ouse 4 aryland usa".to_ascii_lowercase(),
+    //     "123 gfts h4 md usa".to_ascii_lowercase(),     
+    //     "maryland usa".to_ascii_lowercase(),           
+    //     "999 non-existent".to_ascii_lowercase(),       
+    //     "123-generic_fuzzy".to_ascii_lowercase(),      
     // ];
-    // let a_traces = session.matcher.algorithm.multi_score(&target, vecs);
-    // let a_trace = session.matcher.algorithm.debug_score(&target,&query);
-    // println!("{}",a_trace);
-    // a_traces.iter().for_each(|x| println!("{} ", x));
+    // for q_str in queries {
+    //     let query_bytes = q_str.as_bytes();
+    //
+    //     // If you want the debug trace we built:
+    //     let mut reporter = VerboseReporter { steps: Vec::new() };
+    //     let score = session.matcher.algorithm.one_step_calc(target_bytes, query_bytes, &mut reporter);
+    //
+    //     println!("\n--- Testing Query: '{}' ---", q_str);
+    //     for step in reporter.steps {
+    //         println!("{}", step);
+    //     }
+    //     println!("Final Calculated Score: {}", score);
+    // }
     // Ok(())
 }
 fn strings_to_events(inputs: Vec<&str>) -> Vec<KeyEvent> {
