@@ -112,12 +112,12 @@ impl<A: SimilarityAlgorithm> FuzzyMatcher<A> {
                         // 2 cases. ascii, and non ascii
                         // ascii and not
                         match is_ascii {
-                            true => self.algorithm.score(target.text.as_bytes(), q_lower),
+                            true => self.algorithm.score(target.text.to_ascii_lowercase().as_bytes(), q_lower),
                             false => {
                                 // juuuust incase. for debugging
                                 if target.text.is_ascii() {
-                                    dbg!("wait we defined wrong.. somewhere.");
-                                    self.algorithm.score(target.text.as_bytes(), q_lower)
+                                    // eprintln!("wait we defined wrong.. somewhere.");
+                                    self.algorithm.score(target.text.to_ascii_lowercase().as_bytes(), q_lower)
                                 }else {
                                     target_lower_buffer.clear();
                                 for c in target.text.chars() {

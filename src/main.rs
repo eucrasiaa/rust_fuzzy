@@ -13,8 +13,9 @@ use std::fmt;
 use crate::fuzzy::session::SearchSession;
 use ini::Ini;
 use std::io::Result;
-use std::fs;
 use std::path::Path;
+
+use std::fs;
 
 
 use std::fs::File;
@@ -27,6 +28,21 @@ pub fn scale_weight(f: f64) -> i64 {
 }
 
 
+fn run_ui(entities: Vec<DesktopEntity>) -> Result<()> {
+    let is_ascii = true;
+    let session = SearchSession::<DesktopEntity, AlgoWillGreedyVer2>::new(
+        &entities,
+        FuzzyMatcher::with_algo(AlgoWillGreedyVer2::new()), 
+        String::new(),
+        Vec::new(),
+        0,
+        0,
+        is_ascii
+    );
+
+    let mut my_fuzzy_app = FuzzyApp::new(session);
+    my_fuzzy_app.init()
+}
 
 #[derive(Debug)]
 pub struct DesktopEntity{
@@ -70,6 +86,9 @@ impl FuzzyCandidate for AnimalEnt{
     fn usage_bonus(&self) -> i64{
         self.freq + 5
     }
+    fn exec(&self) -> String{
+        "!".to_string()
+    }
     fn display_text(&self) -> &str{
         &self.precompute_str
     }
@@ -97,6 +116,9 @@ impl FuzzyCandidate for DesktopEntity {
         }
         targets
     }
+    fn exec(&self) -> String{
+        self.exec.to_string()
+    }
     fn usage_bonus(&self) -> i64 {
         //tweak this heavy LOL
         (self.launch_count as f64 * 1.2) as i64 
@@ -122,6 +144,9 @@ impl DesktopEntity {
 
         let name = get_str("Name");
         let generic_name = get_str("GenericName");
+
+
+
         let precompute_str = format!("{} - {}", name, generic_name);
         let tags: Vec<String> = section
             .get("Categories")
@@ -131,7 +156,7 @@ impl DesktopEntity {
                     .map(|tag| tag.to_string())
                     .collect()
             })
-            .unwrap_or_default();
+        .unwrap_or_default();
 
         Some(DesktopEntity {
             id: path.file_name()?.to_string_lossy().to_string(),
@@ -153,11 +178,28 @@ impl fmt::Display for DesktopEntity {
 }
 
 fn main() -> Result<()>{
+    let mut args = std::env::args().skip(1);
     // old_main::main().unwrap();
     // let new_greedy = AlgoWillBasicGreedyVer1::default();
-     // let applications_dir = Path::new("/usr/share/applications/");
+    // let applications_dir = Path::new("/usr/share/applications/");
+    let home_dir = std::env::var("HOME").unwrap_or_else(|_| "".into());
 
-    // // Iterate over the directory
+    let desktop_paths_as_per_arch_wiki = vec![
+        format!("{}/.local/share/applications", home_dir), // User apps
+        "/usr/share/applications".to_string(),             // System apps
+        "/usr/local/share/applications".to_string(),       // Local system apps
+    ];
+let entities: Vec<DesktopEntity> = desktop_paths_as_per_arch_wiki.iter()
+    .map(Path::new)
+    // 1. Turn the list of dirs into a stream of entries
+    .flat_map(|path| fs::read_dir(path).ok().into_iter().flatten())
+    .flatten() // Flatten the DirEntry results
+    // 2. Filter for .desktop files
+    .filter(|entry| entry.path().extension().and_then(|s| s.to_str()) == Some("desktop"))
+    // 3. Try to parse each file
+    .filter_map(|entry| DesktopEntity::from_file(&entry.path()))
+    // 4. Collect into your final Vec
+    .collect();
     // if let Ok(entries) = fs::read_dir(applications_dir) {
     //     for entry in entries.flatten() {
     //         let path = entry.path();
@@ -170,53 +212,94 @@ fn main() -> Result<()>{
     //     }
     // }
     // let entities: Vec<DesktopEntity> = fs::read_dir(applications_dir)
-    // .ok()
-    // .into_iter()
-    // .flat_map(|entries| entries.flatten())
-    // .filter(|entry| entry.path().extension().map_or(false, |ext| ext == "desktop"))
-    // .filter_map(|entry| DesktopEntity::from_file(&entry.path()))
-    // .collect();
+    //     .ok()
+    //     .into_iter()
+    //     .flat_map(|entries| entries.flatten())
+    //     .filter(|entry| entry.path().extension().map_or_else(|| false, |ext| ext == "desktop"))
+    //     .filter_map(|entry| DesktopEntity::from_file(&entry.path()))
+    //     .collect();
     //
-
-    let file = File::open("justnames.txt").expect("Could not open file");
-    // let file = File::open("animallist.txt").expect("Could not open file");
-    let reader = BufReader::new(file);
-
-
     let mut is_ascii = true;
-    let animals: Vec<AnimalEnt> = reader
-        .lines()
-        .map_while(Result::ok) // just incase? yells otherwisie 
-        .map(|name| {
-            let trimmed = name.trim().to_string();
-            if !trimmed.is_ascii() {
-                is_ascii = false;
+
+
+    let mut filename = String::new();
+        while let Some(arg) = args.next() {
+            match arg.as_str() {
+                "--input" => {
+                    if let Some(val) = args.next() {
+                        filename = val;
+                    }
             }
-            AnimalEnt {
-                name: name.trim().to_string(),
-                freq: 1, // basically ignore 
-                precompute_str: name.trim().to_string(),
-                // precompute_str: format!("{}",name.trim())
-            }
+            "-h" | "--help" => {
+            println!("MY (wills) AWEsome amazing fuzzy finder application");
+            println!("/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\");
+            println!("./will_fuzzy <flags>");
+            println!();
+            println!("  -h, --help      shows this ");
+            println!("  --animals       reads off the provided animal_names.txt");
+            println!("  --input <FILE>  not well tested but should be able to just read in a text file lol");
+            println!();
+            std::process::exit(0);
         }
+            "--animals"
+                if filename.is_empty() => {
+                    filename = "animal_names.txt".to_string();
+                }
+            _ => {}
+        }
+    }
+        if !filename.is_empty() {
+            let file = match File::open(&filename) {
+                Ok(file) => file,
+                Err(e) => {
+                    eprintln!("Error opening {}: {}", filename, e);
+                    return Err(e);
+                }
+            };
+        
+        
+        let reader = BufReader::new(file);
 
-        )
-        .collect();
 
+        let animals: Vec<AnimalEnt> = reader
+            .lines()
+            .map_while(Result::ok) // just incase? yells otherwisie 
+            .map(|name| {
+                let trimmed = name.trim().to_string();
+                if !trimmed.is_ascii() {
+                    is_ascii = false;
+                }
+                AnimalEnt {
+                    name: name.trim().to_string(),
+                    freq: 1, // basically ignore 
+                    precompute_str: name.trim().to_string(),
+                    // precompute_str: format!("{}",name.trim())
+                }
+            }
 
-    let session:SearchSession::<AnimalEnt, AlgoWillGreedyVer2>= SearchSession::new(
-        &animals,
-        FuzzyMatcher::with_algo(AlgoWillGreedyVer2::new()), 
-        String::new(),
-        Vec::new(),
-        0,
-        0,
-        is_ascii
-    );
+            )
+            .collect();
 
-    let mut my_fuzzy_app = FuzzyApp::new(session);
-//     my_fuzzy_app.is_profiling= true;
-//     let demo_strings_1 = vec!["eeee","bbbb","blackbird","aaaaaaaa","--aa--aa--","aeiou","abcdefghijk"];
+        let session = SearchSession::<AnimalEnt, AlgoWillGreedyVer2>::new(
+            &animals,
+            FuzzyMatcher::with_algo(AlgoWillGreedyVer2::new()),
+            String::new(), Vec::new(), 0, 0, is_ascii
+        );
+        let mut fuzzy_app = FuzzyApp::new(session);
+        fuzzy_app.init()?;
+    } else {
+        let session = SearchSession::<DesktopEntity, AlgoWillGreedyVer2>::new(
+            &entities,
+            FuzzyMatcher::with_algo(AlgoWillGreedyVer2::new()),
+            String::new(), Vec::new(), 0, 0, is_ascii
+        );
+        let mut fuzzy_app = FuzzyApp::new(session);
+        fuzzy_app.init()?; 
+    }
+    Ok(())
+        // let mut my_fuzzy_app = FuzzyApp::new(session);
+        //     my_fuzzy_app.is_profiling= true;
+        //     let demo_strings_1 = vec!["eeee","bbbb","blackbird","aaaaaaaa","--aa--aa--","aeiou","abcdefghijk"];
 //     let demo_strings_2 = vec![
 //     "Axolotl",            
 //     "Gnu",                
@@ -233,8 +316,17 @@ fn main() -> Result<()>{
 //         strings_to_events(demo_strings_1),
 //         strings_to_events(demo_strings_2),
 //     ].into_iter().flatten().collect();
+//
+    // let ffox = "Firefox".to_string();
+    // let ffox2 = ffox.as_bytes();
+    // let q = "fi".to_string();
+    // let q2 = q.as_bytes();
+    // println!("{}",session.matcher.algorithm.one_step_calc(ffox2,q2));
+    // Ok(())
 //     my_fuzzy_app.mock_keys.push(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
-    my_fuzzy_app.init()
+    // my_fuzzy_app.init()
+
+
     // //
     // let target = "123 Generic Fuzzy Tester Street, House #4, Maryland, USA".to_ascii_lowercase();
     // let target_bytes = target.as_bytes();
@@ -246,6 +338,7 @@ fn main() -> Result<()>{
     //     "999 non-existent".to_ascii_lowercase(),       
     //     "123-generic_fuzzy".to_ascii_lowercase(),      
     // ];
+
     // for q_str in queries {
     //     let query_bytes = q_str.as_bytes();
     //
@@ -265,7 +358,7 @@ fn strings_to_events(inputs: Vec<&str>) -> Vec<KeyEvent> {
     inputs.into_iter().flat_map(|s| {
         let chars = s.chars().map(|c| KeyCode::Char(c));
         let bksps = (0..s.len()).map(|_| KeyCode::Backspace);
-        
+
         chars.chain(bksps).map(|code| KeyEvent::new(code, KeyModifiers::NONE))
     }).collect()
 }

@@ -2,8 +2,6 @@
 // it can manage itself, store variables, etc.  
 
 
-
-
 // pub fn algo_demo_slop(){
 //     let new_greedy = AlgoWillBasicGreedyVer1::default();
 //     let mut results: Vec<(i64, String)> = Vec::new();

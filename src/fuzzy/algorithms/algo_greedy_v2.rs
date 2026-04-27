@@ -58,6 +58,8 @@ impl AlgoWillGreedyVer2 {
     ///
     // fn one_step_calc<R:MatchReporter>(&self, target: &[u8], query: &[u8], reporter: &mut R) -> i64{
     pub fn one_step_calc(&self, target: &[u8], query: &[u8]) -> i64{
+        // eprintln!("{}",String::from_utf8(target.to_vec()).unwrap());
+        // eprintln!("target: {:?}  -  query: {:?}",target,query);
     // pub fn one_step_calc<R: MatchReporter>(&self, target: &[u8], query: &[u8], reporter: &mut R) -> i64 {
         // let s = String::from_utf8((&target).to_vec()).expect("Found invalid UTF-8");
         // refactor that actually works
