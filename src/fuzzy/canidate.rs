@@ -6,8 +6,8 @@ use std::fmt;
 ///strings to score, their rules
 pub struct ScoreTarget<'a> {
     pub text: &'a str,
-    /// the weight
-    pub weight_multiplier: f64,
+    /// the weight. scale of 1024 and bit shifted in math! 1024 = 1.0, 512 = 0.5, etc.
+    pub weight_multiplier: i64, // NEW!!
     /// for smthn like tags? idk
     pub exact_match_only: bool, 
 }
@@ -23,8 +23,10 @@ impl<'a> fmt::Display for ScoreTarget<'a>{
 pub trait FuzzyCandidate {
     /// for structs, define which strings are included in scoring?
     fn search_targets(&self) -> Vec<ScoreTarget>;
+    fn exec(&self) -> String;
     /// from use statistics, later include ig
     fn usage_bonus(&self) -> i64;
+    fn display_text(&self) -> &str;
     fn display_candidate(&self) -> String {
         self.search_targets()
             .iter()
@@ -44,7 +46,7 @@ where
     T: FuzzyCandidate
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { 
-        write!(f, "[{:.2}] {}", self.score, self.item.display_candidate())
+        write!(f, "[{:.2}] {}", self.score, self.item.display_text())
     }
 }
 

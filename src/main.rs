@@ -1,21 +1,48 @@
-mod old_main;
+// mod old_main;
 // use old_main::*;
 mod fuzzy;
 mod app;
+// mod algorithms;
 use app::*;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 // use fuzzy::{AlgoWillBasicGreedyVer1, SimilarityAlgorithm};
+use crate::fuzzy::algorithms;
+use fuzzy::algorithms::algo_greedy_v2;
 use fuzzy::*;
 use std::fmt;
 use crate::fuzzy::session::SearchSession;
 use ini::Ini;
 use std::io::Result;
-use std::fs;
 use std::path::Path;
+
+use std::fs;
 
 
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
+
+#[inline(always)]
+pub fn scale_weight(f: f64) -> i64 {
+    (f * 1024.0).round() as i64
+}
+
+
+fn run_ui(entities: Vec<DesktopEntity>) -> Result<()> {
+    let is_ascii = true;
+    let session = SearchSession::<DesktopEntity, AlgoWillGreedyVer2>::new(
+        &entities,
+        FuzzyMatcher::with_algo(AlgoWillGreedyVer2::new()), 
+        String::new(),
+        Vec::new(),
+        0,
+        0,
+        is_ascii
+    );
+
+    let mut my_fuzzy_app = FuzzyApp::new(session);
+    my_fuzzy_app.init()
+}
 
 #[derive(Debug)]
 pub struct DesktopEntity{
@@ -32,12 +59,14 @@ pub struct DesktopEntity{
     /// tags<Vec Str> = []  - "\[AudioVideo\]\[Player\]\[Qt\]\[Audio\];" 
     tags: Vec<String>,
     /// freq? todo
-    launch_count: i64
+    launch_count: i64,
+    precompute_str: String,
 }
 
 pub struct AnimalEnt{
     name:String,
     freq:i64,
+    precompute_str: String
 } 
 
 impl fmt::Display for AnimalEnt {
@@ -50,12 +79,18 @@ impl fmt::Display for AnimalEnt {
 impl FuzzyCandidate for AnimalEnt{
     fn search_targets(&self) -> Vec<ScoreTarget>{
         let targets = vec![
-            ScoreTarget { text: &self.name, weight_multiplier: 1.0, exact_match_only: false},
+            ScoreTarget { text: &self.name, weight_multiplier: scale_weight(1.0), exact_match_only: false},
         ];
         targets
     }
     fn usage_bonus(&self) -> i64{
         self.freq + 5
+    }
+    fn exec(&self) -> String{
+        "!".to_string()
+    }
+    fn display_text(&self) -> &str{
+        &self.precompute_str
     }
 }
 
@@ -69,17 +104,20 @@ impl FuzzyCandidate for DesktopEntity {
         //generic w/ penalty
         targets.push(ScoreTarget {
             text: &self.name,
-            weight_multiplier: 1.0,
+            weight_multiplier: scale_weight(1.0),
             exact_match_only: false,
         });
         for tag in &self.tags {
             targets.push(ScoreTarget { 
                 text: tag, 
-                weight_multiplier: 0.1, 
+                weight_multiplier: scale_weight(0.1), 
                 exact_match_only: true
             });
         }
         targets
+    }
+    fn exec(&self) -> String{
+        self.exec.to_string()
     }
     fn usage_bonus(&self) -> i64 {
         //tweak this heavy LOL
@@ -87,6 +125,9 @@ impl FuzzyCandidate for DesktopEntity {
     }
     fn display_candidate(&self) -> String {
         format!("{} ({})", self.name, self.exec)
+    }
+    fn display_text(&self) -> &str{
+        &self.precompute_str
     }
 }
 
@@ -100,6 +141,13 @@ impl DesktopEntity {
         let get_str = |key: &str| -> String {
             section.get(key).unwrap_or("").to_string()
         };
+
+        let name = get_str("Name");
+        let generic_name = get_str("GenericName");
+
+
+
+        let precompute_str = format!("{} - {}", name, generic_name);
         let tags: Vec<String> = section
             .get("Categories")
             .map(|s| {
@@ -108,16 +156,17 @@ impl DesktopEntity {
                     .map(|tag| tag.to_string())
                     .collect()
             })
-            .unwrap_or_default();
+        .unwrap_or_default();
 
         Some(DesktopEntity {
             id: path.file_name()?.to_string_lossy().to_string(),
-            name: get_str("Name"),
-            generic_name: get_str("GenericName"),
+            name,
+            generic_name, 
             desc: get_str("Comment"),
             exec: get_str("Exec"),
             tags,
             launch_count: 0,
+            precompute_str,
         })
     }
 }
@@ -129,11 +178,28 @@ impl fmt::Display for DesktopEntity {
 }
 
 fn main() -> Result<()>{
+    let mut args = std::env::args().skip(1);
     // old_main::main().unwrap();
     // let new_greedy = AlgoWillBasicGreedyVer1::default();
-     let applications_dir = Path::new("/usr/share/applications/");
+    // let applications_dir = Path::new("/usr/share/applications/");
+    let home_dir = std::env::var("HOME").unwrap_or_else(|_| "".into());
 
-    // // Iterate over the directory
+    let desktop_paths_as_per_arch_wiki = vec![
+        format!("{}/.local/share/applications", home_dir), // User apps
+        "/usr/share/applications".to_string(),             // System apps
+        "/usr/local/share/applications".to_string(),       // Local system apps
+    ];
+let entities: Vec<DesktopEntity> = desktop_paths_as_per_arch_wiki.iter()
+    .map(Path::new)
+    // 1. Turn the list of dirs into a stream of entries
+    .flat_map(|path| fs::read_dir(path).ok().into_iter().flatten())
+    .flatten() // Flatten the DirEntry results
+    // 2. Filter for .desktop files
+    .filter(|entry| entry.path().extension().and_then(|s| s.to_str()) == Some("desktop"))
+    // 3. Try to parse each file
+    .filter_map(|entry| DesktopEntity::from_file(&entry.path()))
+    // 4. Collect into your final Vec
+    .collect();
     // if let Ok(entries) = fs::read_dir(applications_dir) {
     //     for entry in entries.flatten() {
     //         let path = entry.path();
@@ -145,38 +211,154 @@ fn main() -> Result<()>{
     //         }
     //     }
     // }
-    let entities: Vec<DesktopEntity> = fs::read_dir(applications_dir)
-    .ok()
-    .into_iter()
-    .flat_map(|entries| entries.flatten())
-    .filter(|entry| entry.path().extension().map_or(false, |ext| ext == "desktop"))
-    .filter_map(|entry| DesktopEntity::from_file(&entry.path()))
-    .collect();
+    // let entities: Vec<DesktopEntity> = fs::read_dir(applications_dir)
+    //     .ok()
+    //     .into_iter()
+    //     .flat_map(|entries| entries.flatten())
+    //     .filter(|entry| entry.path().extension().map_or_else(|| false, |ext| ext == "desktop"))
+    //     .filter_map(|entry| DesktopEntity::from_file(&entry.path()))
+    //     .collect();
+    //
+    let mut is_ascii = true;
 
 
-    let file = File::open("justnames.txt").expect("Could not open file");
-    // let file = File::open("animallist.txt").expect("Could not open file");
-    let reader = BufReader::new(file);
+    let mut filename = String::new();
+        while let Some(arg) = args.next() {
+            match arg.as_str() {
+                "--input" => {
+                    if let Some(val) = args.next() {
+                        filename = val;
+                    }
+            }
+            "-h" | "--help" => {
+            println!("MY (wills) AWEsome amazing fuzzy finder application");
+            println!("/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\");
+            println!("./will_fuzzy <flags>");
+            println!();
+            println!("  -h, --help      shows this ");
+            println!("  --animals       reads off the provided animal_names.txt");
+            println!("  --input <FILE>  not well tested but should be able to just read in a text file lol");
+            println!();
+            std::process::exit(0);
+        }
+            "--animals"
+                if filename.is_empty() => {
+                    filename = "animal_names.txt".to_string();
+                }
+            _ => {}
+        }
+    }
+        if !filename.is_empty() {
+            let file = match File::open(&filename) {
+                Ok(file) => file,
+                Err(e) => {
+                    eprintln!("Error opening {}: {}", filename, e);
+                    return Err(e);
+                }
+            };
+        
+        
+        let reader = BufReader::new(file);
 
-    let animals: Vec<AnimalEnt> = reader
-        .lines()
-        .map_while(Result::ok) // just incase? yells otherwisie 
-        .map(|name| AnimalEnt {
-            name: name.trim().to_string(),
-            freq: 1, // basically ignore 
-        })
-    .collect();
+
+        let animals: Vec<AnimalEnt> = reader
+            .lines()
+            .map_while(Result::ok) // just incase? yells otherwisie 
+            .map(|name| {
+                let trimmed = name.trim().to_string();
+                if !trimmed.is_ascii() {
+                    is_ascii = false;
+                }
+                AnimalEnt {
+                    name: name.trim().to_string(),
+                    freq: 1, // basically ignore 
+                    precompute_str: name.trim().to_string(),
+                    // precompute_str: format!("{}",name.trim())
+                }
+            }
+
+            )
+            .collect();
+
+        let session = SearchSession::<AnimalEnt, AlgoWillGreedyVer2>::new(
+            &animals,
+            FuzzyMatcher::with_algo(AlgoWillGreedyVer2::new()),
+            String::new(), Vec::new(), 0, 0, is_ascii
+        );
+        let mut fuzzy_app = FuzzyApp::new(session);
+        fuzzy_app.init()?;
+    } else {
+        let session = SearchSession::<DesktopEntity, AlgoWillGreedyVer2>::new(
+            &entities,
+            FuzzyMatcher::with_algo(AlgoWillGreedyVer2::new()),
+            String::new(), Vec::new(), 0, 0, is_ascii
+        );
+        let mut fuzzy_app = FuzzyApp::new(session);
+        fuzzy_app.init()?; 
+    }
+    Ok(())
+        // let mut my_fuzzy_app = FuzzyApp::new(session);
+        //     my_fuzzy_app.is_profiling= true;
+        //     let demo_strings_1 = vec!["eeee","bbbb","blackbird","aaaaaaaa","--aa--aa--","aeiou","abcdefghijk"];
+//     let demo_strings_2 = vec![
+//     "Axolotl",            
+//     "Gnu",                
+//     "Hummingbird",
+//     "aaeeaaee",
+//     " Buffalo",      
+//     "Crow\n",             
+//     "BlackCat",         
+//     "C0nd0r",             
+//     "fiissh...",           
+//     "adeeeeal",      
+// ];
+//     my_fuzzy_app.mock_keys = [
+//         strings_to_events(demo_strings_1),
+//         strings_to_events(demo_strings_2),
+//     ].into_iter().flatten().collect();
+//
+    // let ffox = "Firefox".to_string();
+    // let ffox2 = ffox.as_bytes();
+    // let q = "fi".to_string();
+    // let q2 = q.as_bytes();
+    // println!("{}",session.matcher.algorithm.one_step_calc(ffox2,q2));
+    // Ok(())
+//     my_fuzzy_app.mock_keys.push(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
+    // my_fuzzy_app.init()
 
 
-    let mut session:SearchSession::<AnimalEnt, AlgoWillBasicGreedyVer1>= SearchSession::new(
-        &animals,
-        FuzzyMatcher::with_algo(AlgoWillBasicGreedyVer1::new()), 
-        String::new(),
-        Vec::new(),
-        0,
-        0
-    );
+    // //
+    // let target = "123 Generic Fuzzy Tester Street, House #4, Maryland, USA".to_ascii_lowercase();
+    // let target_bytes = target.as_bytes();
+    // let queries = vec![
+    //     "123 Ge Fuzz Testr St Hs 4 MD USA".to_ascii_lowercase(),
+    //     "3 eneric uzzy ester treet ouse 4 aryland usa".to_ascii_lowercase(),
+    //     "123 gfts h4 md usa".to_ascii_lowercase(),     
+    //     "maryland usa".to_ascii_lowercase(),           
+    //     "999 non-existent".to_ascii_lowercase(),       
+    //     "123-generic_fuzzy".to_ascii_lowercase(),      
+    // ];
 
-    let mut my_fuzzy_app = FuzzyApp::new(session);
-    my_fuzzy_app.init()
+    // for q_str in queries {
+    //     let query_bytes = q_str.as_bytes();
+    //
+    //     // If you want the debug trace we built:
+    //     let mut reporter = VerboseReporter { steps: Vec::new() };
+    //     let score = session.matcher.algorithm.one_step_calc(target_bytes, query_bytes, &mut reporter);
+    //
+    //     println!("\n--- Testing Query: '{}' ---", q_str);
+    //     for step in reporter.steps {
+    //         println!("{}", step);
+    //     }
+    //     println!("Final Calculated Score: {}", score);
+    // }
+    // Ok(())
+}
+fn strings_to_events(inputs: Vec<&str>) -> Vec<KeyEvent> {
+    inputs.into_iter().flat_map(|s| {
+        let chars = s.chars().map(|c| KeyCode::Char(c));
+        let bksps = (0..s.len()).map(|_| KeyCode::Backspace);
+
+        chars.chain(bksps).map(|code| KeyEvent::new(code, KeyModifiers::NONE))
+    }).collect()
 }

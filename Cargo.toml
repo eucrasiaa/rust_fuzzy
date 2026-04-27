@@ -5,7 +5,12 @@ edition = "2024"
 
 [dependencies]
 crossterm = "0.29.0"
+fork = "0.7.0"
+itoa = "1.0.18"
 ratatui = "0.30.0"
 rust-ini = "0.21.3"
 tui-input = "0.15.1"
 walkdir = "2.5.0"
+[profile.release]
+debug = true
+
