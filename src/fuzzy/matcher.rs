@@ -79,8 +79,23 @@ impl<A: SimilarityAlgorithm> FuzzyMatcher<A> {
         query: &str,
         candidates: &[&'a T],
         threshold: i64,
+        is_ascii:&bool,
     ) -> Vec<ScoredResult<'a, T>> {
-        let query_low = query.to_lowercase();
+        if query.is_empty() {return vec![]} // eh?
+        
+        // preprocess query here not every call
+        //                     let t_bytes = target.text.as_bytes();
+
+        let q_bytes = query.as_bytes();
+        let q_lower_vec = match is_ascii {
+            true => query.to_ascii_lowercase().into_bytes(),
+            false => query.to_lowercase().into_bytes(),
+        };
+        let q_lower = &q_lower_vec;
+        // if its not ascii, we can use the buff 
+        let mut target_lower_buffer = String::with_capacity(64);
+        // let target_byte_buff = Vec prealloc?? maybe. 
+        // let query_low = query.to_lowercase();
         let mut results: Vec<ScoredResult<'a, T>> = candidates
             .iter()
             .filter_map(|&item| {
@@ -88,27 +103,32 @@ impl<A: SimilarityAlgorithm> FuzzyMatcher<A> {
                 // let mut scoring_breakdown< = vec
                 // score all provided targets and keep the highest one
                 for target in item.search_targets() {
-                    //DEBUG_PRINT
-                    //println!("target: {}", target);
                     let score = if target.exact_match_only {
-                        // strict substring check for tags
-                        // TODO WORK WITH NON ASCII? maybe helper
-                        // if target.text.eq_ignore_ascii_case(&query_low) {
-                        if contains_ignore_case(&target.text,&query_low){
-                            (target.text.len() as i64) * 10
-                        } else {
-                            0
-                        }
-
-
+                        q_bytes.iter()
+                            .zip(target.text.as_bytes().iter())
+                            .take_while(|&(a,b)| a==b)
+                            .count() as i64 * 15
                     } else {
-                        // TODO!!!
-                        self.algorithm.score(target.text, query)
-                            // let a = self.algorithm.score(target.text, query);
-                            // println!("{a}: {}",target.text);
-                            // a
-                            // if target.text.to_lowercase().contains(&query.to_lowercase()) { 50.0 } else { 0.0 }
-                            //TOTO!
+                        // 2 cases. ascii, and non ascii
+                        // ascii and not
+                        match is_ascii {
+                            true => self.algorithm.score(target.text.as_bytes(), q_lower),
+                            false => {
+                                // juuuust incase. for debugging
+                                if target.text.is_ascii() {
+                                    dbg!("wait we defined wrong.. somewhere.");
+                                    self.algorithm.score(target.text.as_bytes(), q_lower)
+                                }else {
+                                    target_lower_buffer.clear();
+                                for c in target.text.chars() {
+                                    for lc in c.to_lowercase() {
+                                        target_lower_buffer.push(lc);
+                                    }
+                                }
+                                self.algorithm.score(target_lower_buffer.as_bytes(), q_lower)
+                                }
+                            }
+                        }
                     };
                     let weighted_score = (score * target.weight_multiplier) >> 10;
                     // let weighted_score = ((score as f64) * target.weight_multiplier) as i64;
@@ -120,8 +140,8 @@ impl<A: SimilarityAlgorithm> FuzzyMatcher<A> {
                 let final_score = best_score + item.usage_bonus();
                 // thresh filter
                 // -1 = none used
-                
-                if final_score >= threshold && threshold != -1 {
+                // swap thresh to go first for faster fail
+                if threshold != -1 && final_score >= threshold {
                     Some(ScoredResult { item, score: final_score })
                 } else {
                     None
@@ -144,12 +164,12 @@ impl<A: SimilarityAlgorithm> FuzzyMatcher<A> {
 //         target.to_lowercase().contains(query_low)
 //     }
 // }
-fn contains_ignore_case(target: &str, query_low: &str) -> bool {
-    if target.is_ascii() && query_low.is_ascii() {
-        target.as_bytes()
-            .windows(query_low.len())
-            .any(|window| window.eq_ignore_ascii_case(query_low.as_bytes()))
-    } else {
-        target.to_lowercase().contains(query_low)
-    }
-}
+// fn contains_ignore_case(target: &str, query_low: &[u8]) -> bool {
+//     if target.is_ascii() && query_low.is_ascii() {
+//         target.as_bytes()
+//             .windows(query_low.len())
+//             .any(|window| window.eq_ignore_ascii_case(query_low.as_bytes()))
+//     } else {
+//         target.to_lowercase().contains(query_low)
+//     }
+// }

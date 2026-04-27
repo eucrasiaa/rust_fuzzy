@@ -7,6 +7,7 @@ use app::*;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 // use fuzzy::{AlgoWillBasicGreedyVer1, SimilarityAlgorithm};
 use crate::fuzzy::algorithms;
+use fuzzy::algorithms::algo_greedy_v2;
 use fuzzy::*;
 use std::fmt;
 use crate::fuzzy::session::SearchSession;
@@ -43,7 +44,7 @@ pub struct DesktopEntity{
     tags: Vec<String>,
     /// freq? todo
     launch_count: i64,
-    precompute_str: String
+    precompute_str: String,
 }
 
 pub struct AnimalEnt{
@@ -181,25 +182,36 @@ fn main() -> Result<()>{
     // let file = File::open("animallist.txt").expect("Could not open file");
     let reader = BufReader::new(file);
 
+
+    let mut is_ascii = true;
     let animals: Vec<AnimalEnt> = reader
         .lines()
         .map_while(Result::ok) // just incase? yells otherwisie 
-        .map(|name| AnimalEnt {
-            name: name.trim().to_string(),
-            freq: 1, // basically ignore 
-            precompute_str: name.trim().to_string(),
-            // precompute_str: format!("{}",name.trim())
-        })
-    .collect();
+        .map(|name| {
+            let trimmed = name.trim().to_string();
+            if !trimmed.is_ascii() {
+                is_ascii = false;
+            }
+            AnimalEnt {
+                name: name.trim().to_string(),
+                freq: 1, // basically ignore 
+                precompute_str: name.trim().to_string(),
+                // precompute_str: format!("{}",name.trim())
+            }
+        }
+
+        )
+        .collect();
 
 
-    let mut session:SearchSession::<AnimalEnt, AlgoWillBasicGreedyVer1>= SearchSession::new(
+    let session:SearchSession::<AnimalEnt, AlgoWillGreedyVer2>= SearchSession::new(
         &animals,
-        FuzzyMatcher::with_algo(AlgoWillBasicGreedyVer1::new()), 
+        FuzzyMatcher::with_algo(AlgoWillGreedyVer2::new()), 
         String::new(),
         Vec::new(),
         0,
-        0
+        0,
+        is_ascii
     );
 
     let mut my_fuzzy_app = FuzzyApp::new(session);
@@ -223,6 +235,18 @@ fn main() -> Result<()>{
 //     ].into_iter().flatten().collect();
 //     // my_fuzzy_app.mock_keys.push(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE));
     my_fuzzy_app.init()
+    //
+    // let target = "123 Generic Fuzzy Tester Street, House #4, Maryland, USA".to_ascii_lowercase().to_string();
+    // let query = "123 Ge Fuzz Testr St Hs 4 MD USA".to_ascii_lowercase().to_string();
+    // let query2 = "3 eneric uzzy ester treet ouse 4 aryland usa".to_ascii_lowercase().to_string();
+    // let vecs = vec![
+    //     query,query2
+    // ];
+    // let a_traces = session.matcher.algorithm.multi_score(&target, vecs);
+    // let a_trace = session.matcher.algorithm.debug_score(&target,&query);
+    // println!("{}",a_trace);
+    // a_traces.iter().for_each(|x| println!("{} ", x));
+    // Ok(())
 }
 fn strings_to_events(inputs: Vec<&str>) -> Vec<KeyEvent> {
     inputs.into_iter().flat_map(|s| {

@@ -1,14 +1,32 @@
+use super::{MatchReporter, DebugReporter};
+
 pub use super::SimilarityAlgorithm;
 
+
+/// Remade Algorithm, might actually do what it says
+/// we traverse down the query, and see if the letter maps to somewhere within the target.
+/// if so, check for 1 of three conditonals it could be
+/// we define 3 core weights mappins to three conditions:
+/// 1. boundary: on match, if the previous is a deliminator `-`, `_`, or `' '`
+/// 2. consecutive: if the previous matched index also was found, so multiple in a row
+/// 3. start: if the first letter of query matches the first of target
 pub struct AlgoWillGreedyVer2{
     pub bonus_bound:i64,
     pub bonus_consec:i64,
     pub bonus_start:i64,
 }
 impl SimilarityAlgorithm for AlgoWillGreedyVer2 {
-    fn score(&self, source: &str, target: &str) -> i64 {
-        let indexies = self.find_match_indices(target, source).unwrap_or_default();
-        self.calculate_score(source, &indexies)
+    fn score(&self, target: &[u8], query: &[u8]) -> i64{
+        // let mut reporter = DebugReporter { steps: Vec::new() };
+        // let score = self.one_step_calc(target, query, &mut reporter);
+        //
+        // for step in reporter.steps {
+        //     println!("{}", step);
+        // }
+        // score
+        self.one_step_calc(target,query)
+        // let indexies = self.find_match_indices(target, source).unwrap_or_default();
+        // self.calculate_score(source, &indexies)
     }
 }
 impl Default for AlgoWillGreedyVer2 {
@@ -25,78 +43,85 @@ impl AlgoWillGreedyVer2 {
     pub fn new() -> Self {
         Self::default()
     }
-    fn is_separator(&self, c: char) -> bool {
-        matches!(c, ' ' | '-' | '_')
+    pub fn with_weights(custom_bonus_bound:i64, custom_bonus_consecutive:i64, custom_bonus_start:i64) -> Self { 
+        Self{
+            bonus_bound:custom_bonus_bound,
+            bonus_consec:custom_bonus_consecutive,
+            bonus_start:custom_bonus_start
+        }
+    }
+    pub fn modify_weights(&mut self, custom_bonus_bound:i64, custom_bonus_consecutive:i64, custom_bonus_start:i64) {
+        self.bonus_bound = custom_bonus_bound;
+        self.bonus_consec = custom_bonus_consecutive;
+        self.bonus_start = custom_bonus_start;
     }
 
-    //byte index of matches (the fast fail here!)
-    fn find_match_indices(&self, query: &str, target: &str) -> Option<Vec<usize>> {
-        let mut matched_indexes:Vec<usize> = Vec::with_capacity(query.len()); 
-        // pre known size, might help?
-        // to fast fail, if first char doesnt match, return instantly
-        let mut query_chars = query.chars();
-        // iter type 
-        let mut current_q = query_chars.next()?;
-        // let mut current_q = match query_chars.next() 
-        //     Some(c) => c,
-        //     None => return None,
- 
-        for (byte_idx, t_char) in target.char_indices() {
-            let is_match = t_char.eq_ignore_ascii_case(&current_q) 
-                   || (self.is_separator(t_char) && self.is_separator(current_q));
-            if is_match {
-                matched_indexes.push(byte_idx);
-        
-            if let Some(next_q) = query_chars.next() {
-                current_q = next_q;
-            } else {
-                // Found all query chars in sequence!
-                return Some(matched_indexes);
+    /// core philosopy is fast fail, fast iter, minimal allocations
+    ///
+    // fn one_step_calc<R:MatchReporter>(&self, target: &[u8], query: &[u8], reporter: &mut R) -> i64{
+    fn one_step_calc(&self, target: &[u8], query: &[u8]) -> i64{
+        let s = String::from_utf8((&target).to_vec()).expect("Found invalid UTF-8");
+        // refactor that actually works
+        // process psudo:
+        // if either empty, fail 
+        // ideally, fail if we dont match any bounds/start
+        // maybe? fail off first char not match. but more the any bounds
+        // prev iter matched usize var
+        // var score
+        // while over both,  
+        // check if identical
+        //    if match{
+        //    if start of string (index 1?) 
+        //              start bonus!
+        //    else if, check if prev matched. 
+        //        add consec bonus
+        //    else if prev is delimin
+        //         add delim bonus
+        //    update last matched index
+        //    advance query
+        //   }
+        //  regardless of match, advance target:
+        //}
+        // if we reach end of query, return score. (want to ensure target didnt end early
+        // i think? ran odd without)
+        if target.is_empty() || query.is_empty() { return 0 }
+        let mut prev_match_index=-1;
+        let mut amt_consec = 0;
+        let mut score:i64 = 0;
+        let mut target_index=0;
+        let mut query_index=0;
+        while target_index < target.len() && query_index < query.len(){
+            let t_byte = target[target_index];
+            let q_byte = query[query_index];
+            //match, orr if either is a seperator(match)
+            if t_byte == q_byte || (is_sep(t_byte) && is_sep(q_byte)) {
+                // b/c we advance both together, or target alone, any target_index ==0 means its on
+                // first. so, apply bonus start
+                if target_index == 0 {
+                    score+=self.bonus_start;
+                }// if its not, its at least past 1. so we can safely check for -1 without extra
+                 // conditonal:
+                else{
+                    // check if past is a delim, if so, give delim bonus
+                    // such a finicky if, might be faster this way?
+                    // DELIM BONUS!
+                    score += -(is_sep(target[target_index - 1]) as i64) & self.bonus_bound;
+                        
+                    // CONSEC BONUS
+                }
+
+                // advance query if match expr
+                query_index +=1;   
             }
+            target_index +=1;
         }
-        }
-        None
+        score
+        
     }
     
-    //string + indexes, score it
-    fn calculate_score(&self, target:&str, indices: &[usize]) -> i64 {
-        // 0 matches at all? drop it
-        if indices.is_empty() { return 0; }
-        let bytes = target.as_bytes();
-        let mut score = 0;
-        // if is_empty() passed, then we know 0 will always exist, so safe
-        if indices[0] == 0 { 
-            score += self.bonus_start; 
-        }
-        // if indices.contains(&0) { score +=self.bonus_start; };
-        //TODO this feels like a prime loop unrolling thing bc of 2 distinct  i > 0 cases
-        // no thats stupid... trust the compiler  Will cmonn
-        for i in 0..indices.len() {
-            let current_idx = indices[i];
-
-            // consec only matters past elem 1 
-            // if i > 0 && current_idx == indices[i - 1] + 1 {
-            //     score += self.bonus_consec;
-            // }
-            if current_idx > 0 {
-                let prev_byte = bytes[current_idx - 1];
-                // bounds = ' ', -, or _
-                // let is_bound = (prev_byte == b' ') | (prev_byte == b'-') | (prev_byte == b'_');
-                // score += (is_bound as i32 as f64) * self.bonus_bound;
-                if prev_byte == b' ' || prev_byte == b'-' || prev_byte == b'_' {
-                    score += self.bonus_bound;
-
-                }
-            }
-        }
-        //DEBUG_PRINT
-        // if score != 0{
-        //     let joined = scores_why.iter()
-        //             .map(|n| n.to_string())
-        //             .collect::<Vec<String>>()
-        //             .join(", ");
-        //     println!("scored {} with {}", target, joined);
-        // }
-        score
-    }
 }
+#[inline(always)]
+fn is_sep(b: u8) -> bool {
+    b == b' ' || b == b'-' || b == b'_' || b == b'/' || b == b'\\' || b == b'.'
+}
+
