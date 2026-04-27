@@ -185,7 +185,8 @@ fn main() -> Result<()>{
         .map(|name| AnimalEnt {
             name: name.trim().to_string(),
             freq: 1, // basically ignore 
-            precompute_str: format!("{} - slop",name.trim())
+            precompute_str: name.trim().to_string(),
+            // precompute_str: format!("{}",name.trim())
         })
     .collect();
 

@@ -1,9 +1,10 @@
 TODO: 
 
 break apart some heavy functs (notibly within session)
-FIX STATE TRACKING IT WAS BUGGED
-also make get_current() or whatever not pull from history but curernt_resutls
 
+
+OH MY GOODD I FIXED SCROLLING FINALLY THANK GOODDDDDDDDDD 
+coworker losingf their damn mind :sob:
 better document functions and structures
 
 

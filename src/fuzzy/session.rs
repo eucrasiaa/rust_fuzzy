@@ -208,7 +208,8 @@ where
         self.current_threshold
     }
     pub fn current_results(&self) -> &[ScoredResult<'a, T>] {
-        self.history.last().map(|(v,_past_thresh,_past_length)| v.as_slice()).unwrap_or(&[])
+         self.current_results.iter().as_slice()
+         // self.history.last().map(|(v,_past_thresh,_past_length)| v.as_slice()).unwrap_or(&[])
     }
 
     // pub fn current_results_range(&self, start:usize, limit:usize) -> &[ScoredResult<'a, T>] {

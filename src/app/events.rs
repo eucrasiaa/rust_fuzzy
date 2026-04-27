@@ -76,33 +76,39 @@ where
         self.hover_index = if self.session.num_results > 0 { 1 } else { 0 };
     }
     /// sync displayed list of outputs (scrolling)
+    // this function is so evilllll
     #[inline]
     pub (crate) fn sync_scroll(&mut self, num_line:usize){
-        // let new_index = self.hover_index-1;
-        // //up
-        // if new_index < self.scroll_index {
-        //     self.scroll_index = new_index;
-        // } 
-        // //down
-        // // dont let us scroll off page?
-        // else if (self.session.num_results <=  self.scroll_index + num_line) && new_index >= self.scroll_index + num_line {
-        //     self.scroll_index = new_index+ 1 - num_line;
-        // }
-        // self.list_state.select(Some(new_index));
-        // //todo!();
+        // core logic:
+        // if no results, dont do anything early return 
         if self.session.num_results == 0 {
             self.scroll_index = 0;
             self.list_state.select(None);
             return;
         }
-
+        // results? start by tracking current hovered index
+        // sub 1 b/c hover is one indexed for 0 marking none
         let new_index = self.hover_index.saturating_sub(1);
-        //TODO a lil chopped? fix
-        // new_index + 1 - num_line <= scroll_index <= new_index (top bound)
-        self.scroll_index = self.scroll_index
-            .min(new_index)
-            .max(new_index.saturating_add(5).saturating_sub(num_line));
-        self.list_state.select(Some(new_index));
+        // Ensure we don't select past the actual results
+        // set the furthest down to the length -1 (b/c len isnt 0 indexed) 
+        let max_possible_index = self.session.num_results.saturating_sub(1);
+        let clamped_index = new_index.min(max_possible_index);
+
+        // actually scroll
+        // upwards: cursor goes above top line, move up. straightforward
+        if clamped_index < self.scroll_index {
+            self.scroll_index = clamped_index;
+
+        //downward: if we hit the number visible + scroll index = bottom line of the code
+        } else if clamped_index >= self.scroll_index + num_line {
+            // we do the clampted + 1 to go down, and - num_line b/c 
+            // of the weird range scrlling thing we do
+            self.scroll_index = clamped_index + 1 - num_line;
+        }
+        // b/c we only are "rendering" a slice for optimization sake, we need to pretend for calcs
+        // that the whole list is all there, needs to be manually handled as opposed to just the
+        // basic select 
+        self.list_state.select(Some(clamped_index-self.scroll_index));
 
     }
     fn kp_basic_char(&mut self, c:char){
@@ -119,12 +125,12 @@ where
 
     }
     fn kp_arrow_up(&mut self){
-        self.list_state.select_previous();
+        // self.list_state.select_previous();
         self.hover_index = self.hover_index.saturating_sub(1).max(1);
         
     }
     fn kp_arrow_down(&mut self){
-        self.list_state.select_next();
+        // self.list_state.select_next();
         self.hover_index = (self.hover_index + 1).min(self.session.num_results);
     }
 }
