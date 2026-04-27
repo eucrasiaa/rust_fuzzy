@@ -1,6 +1,5 @@
-use crate::fuzzy::FuzzyMatcher;
-
-use super::algorithm::{SimilarityAlgorithm};
+use super::FuzzyMatcher;
+use super::SimilarityAlgorithm;
 use super::canidate::*;
 
 

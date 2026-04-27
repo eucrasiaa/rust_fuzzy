@@ -1,6 +1,5 @@
-use super::algorithm::{SimilarityAlgorithm,AlgoWillBasicGreedyVer1};
 use super::canidate::*;
-
+use super::SimilarityAlgorithm;
 
 
 

@@ -2,9 +2,11 @@
 // use old_main::*;
 mod fuzzy;
 mod app;
+// mod algorithms;
 use app::*;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 // use fuzzy::{AlgoWillBasicGreedyVer1, SimilarityAlgorithm};
+use crate::fuzzy::algorithms;
 use fuzzy::*;
 use std::fmt;
 use crate::fuzzy::session::SearchSession;
