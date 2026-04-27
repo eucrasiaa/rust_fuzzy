@@ -59,7 +59,8 @@ impl AlgoWillGreedyVer2 {
     /// core philosopy is fast fail, fast iter, minimal allocations
     ///
     // fn one_step_calc<R:MatchReporter>(&self, target: &[u8], query: &[u8], reporter: &mut R) -> i64{
-    fn one_step_calc(&self, target: &[u8], query: &[u8]) -> i64{
+    #[inline(never)]
+    pub fn one_step_calc(&self, target: &[u8], query: &[u8]) -> i64{
         let s = String::from_utf8((&target).to_vec()).expect("Found invalid UTF-8");
         // refactor that actually works
         // process psudo:
@@ -85,7 +86,7 @@ impl AlgoWillGreedyVer2 {
         // if we reach end of query, return score. (want to ensure target didnt end early
         // i think? ran odd without)
         if target.is_empty() || query.is_empty() { return 0 }
-        let mut prev_match_index=-1;
+        let mut prev_match_index=0;
         let mut amt_consec = 0;
         let mut score:i64 = 0;
         let mut target_index=0;
@@ -105,21 +106,39 @@ impl AlgoWillGreedyVer2 {
                     // check if past is a delim, if so, give delim bonus
                     // such a finicky if, might be faster this way?
                     // DELIM BONUS!
-                    score += -(is_sep(target[target_index - 1]) as i64) & self.bonus_bound;
-                        
+                    // unsafe { std::arch::asm!(";# LLVM-MCA-BEGIN"); }
+                    let mask = SEPARATOR_MAP[target[target_index - 1] as usize];
+                    score += mask & self.bonus_bound;
+                    // score += -(is_sep(target[target_index - 1]) as i64) & self.bonus_bound;
+                    // unsafe { std::arch::asm!(";# LLVM-MCA-END"); }
+                     
                     // CONSEC BONUS
+                    if target_index == prev_match_index + 1 {
+                        score += self.bonus_consec;
+                    }
                 }
+                prev_match_index = target_index;
 
                 // advance query if match expr
                 query_index +=1;   
             }
             target_index +=1;
         }
-        score
-        
+        let mask = ((query_index == query.len()) as i64).wrapping_neg();
+        mask & score
     }
     
 }
+static SEPARATOR_MAP: [i64; 256] = {
+    let mut map = [0i64; 256];
+    map[b' ' as usize] = -1; // -1 is all 1s in bits
+    map[b'-' as usize] = -1;
+    map[b'_' as usize] = -1;
+    map[b'/' as usize] = -1;
+    map[b'\\' as usize] = -1;
+    map[b'.' as usize] = -1;
+    map
+};
 #[inline(always)]
 fn is_sep(b: u8) -> bool {
     b == b' ' || b == b'-' || b == b'_' || b == b'/' || b == b'\\' || b == b'.'
