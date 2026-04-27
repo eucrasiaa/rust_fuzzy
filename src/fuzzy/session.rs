@@ -1,6 +1,5 @@
-use crate::fuzzy::FuzzyMatcher;
-
-use super::algorithm::{SimilarityAlgorithm};
+use super::FuzzyMatcher;
+use super::SimilarityAlgorithm;
 use super::canidate::*;
 
 
@@ -35,7 +34,7 @@ pub struct SearchSession<'a,T:FuzzyCandidate,S:SimilarityAlgorithm>{
     /// An array of a structure with FuzzyCanidate Implemented. Critical to decide which values of
     /// the struct are used in the searching
     candidate_structs: &'a [T],
-    matcher: FuzzyMatcher<S>,
+    pub matcher: FuzzyMatcher<S>,
     current_query: String,
     ///History: to enable quick undoing for character based Searching.
     ///ScoredResult: previous results
@@ -51,6 +50,7 @@ pub struct SearchSession<'a,T:FuzzyCandidate,S:SimilarityAlgorithm>{
     pub current_results: Vec<ScoredResult<'a, T>>,
     pub current_threshold: i64,
     pub num_results: usize,
+    pub is_ascii: bool,
     internal_state: InternalSerSesStats,
 }
 
@@ -64,10 +64,11 @@ where
             Vec<ScoredResult<'a, T>>, 
             i64,                      
             usize                     
-    )>, current_threshold: i64, num_results: usize) -> Self {
+    )>, current_threshold: i64, num_results: usize, is_ascii: bool) -> Self {
         Self { candidate_structs, matcher, current_query, history, current_threshold, 
             num_results, 
             current_results: Vec::new(),
+            is_ascii,
             internal_state: InternalSerSesStats { 
                 len_canidates: candidate_structs.len(), 
                 hist_length: 0, 
@@ -77,7 +78,7 @@ where
             },
         }
     }
-
+    
     /// TODID that !!!
     pub fn type_char(&mut self, c: char) {
         self.current_query.push(c); 
@@ -98,7 +99,7 @@ where
 
 
         // !! generate updated list
-        let new_results = self.matcher.search(&self.current_query, &candidates_to_search, self.current_threshold);
+        let new_results = self.matcher.search(&self.current_query, &candidates_to_search, self.current_threshold, &self.is_ascii);
         let tmp_thresh = self.matcher.update_thresh(&new_results);
         let new_thresh = if tmp_thresh == -1 { self.current_threshold } else { tmp_thresh };
         let new_length = new_results.len();

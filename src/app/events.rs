@@ -1,8 +1,9 @@
 use super::FuzzyApp;
 use crate::fuzzy::{SimilarityAlgorithm,FuzzyCandidate};
-use std::time::Duration;
+use std::process::Stdio;
+use std::{process::Command, time::Duration};
 use std::io::Result;
-
+use fork::{daemon, Fork};
 use crossterm::
     event::{
         self, KeyEventKind,KeyEvent,
@@ -62,7 +63,8 @@ where
         match key.code {
             KeyCode::Char(c)   => self.kp_basic_char(c),
             KeyCode::Backspace => self.kp_backspace(),
-            KeyCode::Enter     => self.toggles[0] = !self.toggles[0],
+            // KeyCode::Enter     => self.toggles[0] = !self.toggles[0],
+            KeyCode::Enter     => self.kp_enter(),
             KeyCode::Up        => self.kp_arrow_up(),
             KeyCode::Down      => self.kp_arrow_down(),
             KeyCode::Esc       => self.exit = true,
@@ -74,6 +76,26 @@ where
     /// run every change to results 
     fn sync_cursor(&mut self){
         self.hover_index = if self.session.num_results > 0 { 1 } else { 0 };
+    }
+
+    fn kp_enter(&mut self) {
+        if let Some(res) = self.session.current_results().get(self.hover_index.saturating_sub(1)) {
+            let exec_str = res.item.exec();
+            // non exec, toggle [2] which is just display text
+            if exec_str == "!" {
+                self.toggles[2] = !self.toggles[2];
+            }
+            else{
+            if self.toggles[1] || exec_str == "!" {
+                self.toggles[1] = false;
+            }
+            else{
+                self.toggles[1] = !self.toggles[1];
+            }
+            }
+
+            
+        }
     }
     /// sync displayed list of outputs (scrolling)
     // this function is so evilllll
@@ -113,12 +135,17 @@ where
     }
     fn kp_basic_char(&mut self, c:char){
         self.list_state.select_first();
+        self.toggles[1]=false;
+        self.toggles[2]=false;
         self.session.type_char(c); 
         self.sync_cursor();
     }
     fn kp_backspace(&mut self){
         self.list_state.select_first();
         // println!("backsopaced");
+                self.toggles[1]=false;
+                self.toggles[2]=false;
+
         // if no results, 0. else, 1
         self.session.backspace(); 
         self.hover_index = (self.session.num_results > 0) as usize;
@@ -134,3 +161,4 @@ where
         self.hover_index = (self.hover_index + 1).min(self.session.num_results);
     }
 }
+

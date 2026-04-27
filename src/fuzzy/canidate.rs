@@ -23,6 +23,7 @@ impl<'a> fmt::Display for ScoreTarget<'a>{
 pub trait FuzzyCandidate {
     /// for structs, define which strings are included in scoring?
     fn search_targets(&self) -> Vec<ScoreTarget>;
+    fn exec(&self) -> String;
     /// from use statistics, later include ig
     fn usage_bonus(&self) -> i64;
     fn display_text(&self) -> &str;

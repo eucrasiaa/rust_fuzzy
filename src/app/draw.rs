@@ -3,12 +3,7 @@ use crate::fuzzy::{SimilarityAlgorithm,FuzzyCandidate};
 
 static ERROR_ITER: &str = "No String Hovered";
 use ratatui::{
-    style::{Color, Style, Stylize},
-    layout::{Constraint, Direction, Layout},
-    symbols::border,
-    text::{Line, Text, Span},
-    widgets::{Block, Paragraph, ListItem, List, Clear},
-    Frame,
+    Frame, layout::{Alignment, Constraint, Direction, Layout}, style::{Color, Style, Stylize}, symbols::border, text::{Line, Span, Text}, widgets::{Block, Clear, List, ListItem, Paragraph, Wrap}
 };
 impl<'a, T, A> FuzzyApp<'a, T, A>
 where
@@ -228,5 +223,55 @@ where
             let paragraph = Paragraph::new("Lorem ipsum").block(popup_block);
             frame.render_widget(paragraph, centered_area); 
         }
+        if self.toggles[1] {
+            let popup_block = Block::bordered().title("Run Me!");
+            let centered_area = frame.area().centered(Constraint::Percentage(60), Constraint::Percentage(20));
+            frame.render_widget(Clear, centered_area);
+            let mut exec_str = "flopped bad".to_string();
+            if let Some(res) = self.session.current_results().get(self.hover_index.saturating_sub(1)) {
+                exec_str = res.item.exec();
+            }
+
+            let paragraph = Paragraph::new(exec_str).block(popup_block);
+            frame.render_widget(paragraph, centered_area); 
+        }
+        //lowk iterslop but whataver
+if self.toggles[2] {
+    let mut area = frame.area().centered(Constraint::Percentage(60), Constraint::Percentage(30));
+    let colors = [Color::Red, Color::Yellow, Color::Green, Color::Cyan, Color::Blue, Color::Magenta];
+    for (i, color) in colors.iter().enumerate() {
+        frame.render_widget(Clear, area); 
+        let block = Block::bordered()
+            .border_type(ratatui::widgets::BorderType::Thick)
+            .border_style(Style::default().fg(*color));
+        
+let block = if i == 0 {
+    block
+        .title(" WOAAAHHH!!! YOU SELECTED!!!1! ")
+        .title_style(Style::default().fg(Color::LightMagenta).add_modifier(ratatui::style::Modifier::BOLD))
+        .title_alignment(Alignment::Center)
+} else {
+    block
+};
+        frame.render_widget(block, area);
+        area = area.inner(ratatui::layout::Margin { vertical: 1, horizontal: 1 });
+    }
+    let display_content = self.session.current_results()
+        .get(self.hover_index.saturating_sub(1))
+        .map(|res| res.item.display_text())
+        .unwrap_or_else(|| "Nothing found!");
+    let big_text = vec![
+        Line::from(""), 
+        Line::from(display_content.bold().fg(Color::White)).alignment(Alignment::Center),
+    ];
+
+    let paragraph = Paragraph::new(big_text)
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true });
+
+    frame.render_widget(paragraph, area);
+}
+
+
     }
 }
