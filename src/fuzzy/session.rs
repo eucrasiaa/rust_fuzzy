@@ -78,6 +78,8 @@ where
             },
         }
     }
+
+    // pub fn search_against(&)
     
     /// TODID that !!!
     pub fn type_char(&mut self, c: char) {
