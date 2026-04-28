@@ -1,5 +1,7 @@
 # Wills-Fuzzy-Searcher
 
+[View Documentation! Rustdoc!](https://eucrasiaa.github.io/rust_fuzzy)
+
 ## FOR LINUX!!!!!!!!!! i love linux
 a shockingly fast, terminal based fuzzy-search tool! A custom written, technically standalone fuzzy-search algorithm and rust library powers a tui visual interface.
 
