@@ -18,7 +18,7 @@ impl<'a> ScoreTarget<'a> {
     pub fn new(text: &'a str, weight: f64, exact_match_only:bool) -> Self {
         Self {
             text,
-            weight_multiplier: (weight * 1024.0).round() as i64,
+            weight_multiplier: scale_weight(weight), 
             exact_match_only,
         }
     }
@@ -30,90 +30,7 @@ impl<'a> fmt::Display for ScoreTarget<'a>{
     }
 }
 
-/// technically usable on non-ascii, i haven't tested it extensively. so. just incase
-#[derive(Debug, Clone, Copy, Default)]
-pub enum SearchMode{
-    // lets use the standard &[u8] algo
-    #[default]
-    Ascii,  
-    //else
-    Unicode, 
-}
-/// a generic basic struct, for a quick single / multi string implementation.
-/// 
-/// assumes a lowercase, non-exact match pattern. 
-pub struct GenericStringStruct {
-    pub visible_line: String,   
-    pub precompute_str: String, 
-    pub freq: i64,       
-    pub mode: SearchMode, 
-}
 
-impl GenericStringStruct {
-    /// Helper to build a new candidate quickly
-    pub fn new(text: &str, freq: i64) -> Self {
-        Self {
-            visible_line: text.to_string(),
-            precompute_str: text.to_lowercase(),
-            freq,
-            mode: SearchMode::Ascii,
-        }
-    }
-}
-
-impl Default for GenericStringStruct {
-    fn default() -> Self {
-        Self {
-            visible_line: String::new(),
-            precompute_str: String::new(),
-            freq: 0,
-            mode: SearchMode::Ascii,
-        }
-    }
-}
-
-impl FuzzyCandidate for GenericStringStruct {
-    fn search_targets(&self) -> Vec<ScoreTarget> {
-        vec![
-            ScoreTarget { 
-                text: &self.precompute_str, 
-                weight_multiplier: 1, 
-                exact_match_only: false 
-            },
-        ]
-    }
-
-    fn usage_bonus(&self) -> i64 {
-        self.freq
-    }
-
-    fn exec(&self) -> String {
-        self.visible_line.clone()
-    }
-
-    fn display_text(&self) -> &str {
-        &self.visible_line
-    }
-}
-
-
-
-pub struct CandidateGenerator;
-
-impl CandidateGenerator {
-    /// Creates a batch of candidates from raw strings
-    pub fn from_lines(lines: Vec<String>) -> Vec<GenericStringStruct> {
-        lines.into_iter()
-            .map(|line | {
-                let mut candidate = GenericStringStruct::new(&line, 0);
-                if !line.is_ascii() {
-                    candidate.mode = SearchMode::Unicode;
-                }
-                candidate
-            })
-            .collect()
-    }
-}
 // impl Default for GenericStringStruct{
 //     fn default() -> Self {
 //
@@ -146,12 +63,13 @@ impl CandidateGenerator {
 
 
 ///using a trait to define parts of a struct to score + weights
+/// hardcode weight 1?
 pub trait FuzzyCandidate {
     /// for structs, define which strings are included in scoring?
     fn search_targets(&self) -> Vec<ScoreTarget>;
-    fn exec(&self) -> String;
+    fn exec(&self) -> String { "\0".to_string() }
     /// from use statistics, later include ig
-    fn usage_bonus(&self) -> i64;
+    fn usage_bonus(&self) -> i64 {1}
     fn display_text(&self) -> &str;
     fn display_candidate(&self) -> String {
         self.search_targets()
@@ -159,6 +77,29 @@ pub trait FuzzyCandidate {
             .map(|t| t.to_string()) 
             .collect::<Vec<_>>()
             .join(" | ")
+    }
+}
+
+impl FuzzyCandidate for Box<dyn FuzzyCandidate> {
+    fn search_targets(&self) -> Vec<ScoreTarget> {
+        (**self).search_targets()
+    }
+    fn usage_bonus(&self) -> i64 { (**self).usage_bonus() }
+    fn exec(&self) -> String { (**self).exec() }
+    fn display_text(&self) -> &str { (**self).display_text() }
+}
+
+pub trait FuzzyBoxExt {
+    fn into_boxed(self) -> Vec<Box<dyn FuzzyCandidate>>;
+}
+impl<I, T> FuzzyBoxExt for I 
+where 
+    I: Iterator<Item = T>,
+    T: FuzzyCandidate + 'static, 
+{
+    fn into_boxed(self) -> Vec<Box<dyn FuzzyCandidate>> {
+        self.map(|x| Box::new(x) as Box<dyn FuzzyCandidate>)
+            .collect()
     }
 }
 
