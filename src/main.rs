@@ -19,12 +19,6 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 
 
-#[inline(always)]
-pub fn scale_weight(f: f64) -> i64 {
-    (f * 1024.0).round() as i64
-}
-
-
 fn run_ui(entities: Vec<DesktopEntity>) -> Result<()> {
     let is_ascii = true;
     let session = SearchSession::<DesktopEntity, AlgoWillGreedyVer2>::new(
@@ -76,7 +70,8 @@ impl fmt::Display for AnimalEnt {
 impl FuzzyCandidate for AnimalEnt{
     fn search_targets(&self) -> Vec<ScoreTarget>{
         let targets = vec![
-            ScoreTarget { text: &self.name, weight_multiplier: scale_weight(1.0), exact_match_only: false},
+            ScoreTarget::new(&self.name, 1.0, false)
+           // ScoreTarget::new text: &self.name, weight_multiplier: scale_weight(1.0), exact_match_only: false},
         ];
         targets
     }
@@ -99,17 +94,13 @@ impl FuzzyCandidate for DesktopEntity {
         // ];
         let mut targets = Vec::with_capacity(1+self.tags.len());
         //generic w/ penalty
-        targets.push(ScoreTarget {
-            text: &self.name,
-            weight_multiplier: scale_weight(1.0),
-            exact_match_only: false,
-        });
+        targets.push(
+            ScoreTarget::new(&self.name, 1.0, false)
+        );
         for tag in &self.tags {
-            targets.push(ScoreTarget { 
-                text: tag, 
-                weight_multiplier: scale_weight(0.1), 
-                exact_match_only: true
-            });
+            targets.push(
+            ScoreTarget::new(tag, 0.1, true)
+            );
         }
         targets
     }

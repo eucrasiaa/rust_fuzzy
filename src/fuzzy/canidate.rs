@@ -1,4 +1,5 @@
 use std::fmt;
+use super::scale_weight;
 // |||||||||||||||||||||||||||||||
 // fuzzy finder part
 // |||||||||||||||||||||||||||||||
@@ -12,6 +13,16 @@ pub struct ScoreTarget<'a> {
     pub exact_match_only: bool, 
 }
 
+impl<'a> ScoreTarget<'a> {
+    /// Creates a new target with a float weight (e.g., 1.0) and handles the bit-shifting.
+    pub fn new(text: &'a str, weight: f64, exact_match_only:bool) -> Self {
+        Self {
+            text,
+            weight_multiplier: (weight * 1024.0).round() as i64,
+            exact_match_only,
+        }
+    }
+}
 impl<'a> fmt::Display for ScoreTarget<'a>{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "text: {}, weight: {}, exact? {}", self.text, self.weight_multiplier,self.exact_match_only)
