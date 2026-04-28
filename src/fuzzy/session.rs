@@ -59,7 +59,7 @@ where
     T: FuzzyCandidate,
     S: SimilarityAlgorithm,
 {
-    /// initializer. standard
+    /// initializer. to be replaced?? dont use. try .create()
     pub fn new(candidate_structs: &'a [T], matcher: FuzzyMatcher<S>, current_query: String, history: Vec<(
             Vec<ScoredResult<'a, T>>, 
             i64,                      
@@ -78,7 +78,69 @@ where
             },
         }
     }
+    pub fn create(
+        candidates: &'a [T], 
+        matcher: FuzzyMatcher<S>, 
+        query: String
+    ) -> Self {
+        Self {
+            candidate_structs: candidates,
+            matcher,
+            current_query: query,
+            history: Vec::new(),
+            current_threshold: 0,
+            num_results: 10,
+            current_results: Vec::new(),
+            is_ascii: true,
+            internal_state: InternalSerSesStats {
+                len_canidates: candidates.len(),
+                hist_length: 0,
+                query_prefix: '\0',
+                len_query: 0,
+            },
+        }
+    }
+
+    // pub fn search_against(&)
     
+
+
+    pub fn top_results(&self, number: usize, offset: usize) -> &[ScoredResult<'a, T>] {
+        let total_len = self.current_results.len();
+        if offset >= total_len {
+            return &[];
+        }
+        //clamp to end?
+        let end = (offset + number).min(total_len);
+        &self.current_results[offset..end]
+    } 
+    pub fn set_query(&mut self, query: String) {
+        // just incase? assumedly only using one  ver at a time but
+        self.history.clear(); 
+        self.current_query = query;
+        self.run_search_and_update_history();
+    }
+
+    fn run_search_and_update_history(&mut self) {
+        let candidates_to_search: Vec<&T> = if self.history.is_empty() {
+            self.candidate_structs.iter().collect()
+        } else {
+            self.current_results.iter().map(|res| res.item).collect()
+        };
+        let new_results = self.matcher.search(
+            &self.current_query, 
+            &candidates_to_search, 
+            self.current_threshold, 
+            &self.is_ascii
+        );
+        let tmp_thresh = self.matcher.update_thresh(&new_results);
+        let new_thresh = if tmp_thresh == -1 { self.current_threshold } else { tmp_thresh };
+        let new_length = new_results.len();
+        let old_results = std::mem::replace(&mut self.current_results, new_results);
+        self.history.push((old_results, self.current_threshold, self.num_results));
+        self.current_threshold = new_thresh;
+        self.num_results = new_length;
+    }
     /// TODID that !!!
     pub fn type_char(&mut self, c: char) {
         self.current_query.push(c); 

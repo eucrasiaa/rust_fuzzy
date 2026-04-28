@@ -10,7 +10,7 @@ pub trait SimilarityAlgorithm {
     /// Target: original static strings we search against, the canidates 
     /// Query: the user typed string we match with 
     // fn score(&self, target: &str, query: &str) -> i64;
-    fn score(&self, target: &[u8], query: &[u8]) -> i64;
-
+    // fn score(&self, target: &[u8], query: &[u8]) -> i64;
+    fn score<T: AsRef<[u8]>, Q: AsRef<[u8]>>(&self, target: T, query: Q) -> i64;
 }
 

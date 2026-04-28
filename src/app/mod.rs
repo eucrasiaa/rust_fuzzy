@@ -1,3 +1,8 @@
+/*!
+# mostly self contained. just create via new, and init it with a session!
+
+*/
+
 // pub mod state;
 // pub use self::state::*;
 mod draw;   
@@ -17,6 +22,8 @@ use std::io::{Result,stdout};
 
 
 
+/// DebugStrings is a psudo bump allocator primarily used for the output tui interface. i guess.
+/// could be used for other things.  
 pub struct DebugStrings{
     num_debugs: usize,
     char_capacity: usize,

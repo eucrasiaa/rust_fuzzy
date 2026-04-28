@@ -3,7 +3,6 @@ use crate::fuzzy::{SimilarityAlgorithm,FuzzyCandidate};
 use std::process::Stdio;
 use std::{process::Command, time::Duration};
 use std::io::Result;
-use fork::{daemon, Fork};
 use crossterm::
     event::{
         self, KeyEventKind,KeyEvent,
@@ -82,11 +81,11 @@ where
         if let Some(res) = self.session.current_results().get(self.hover_index.saturating_sub(1)) {
             let exec_str = res.item.exec();
             // non exec, toggle [2] which is just display text
-            if exec_str == "!" {
+            if exec_str == "\0" {
                 self.toggles[2] = !self.toggles[2];
             }
             else{
-            if self.toggles[1] || exec_str == "!" {
+            if self.toggles[1] || exec_str == "\0" {
                 self.toggles[1] = false;
             }
             else{
