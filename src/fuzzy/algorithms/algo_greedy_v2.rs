@@ -14,15 +14,16 @@ pub struct AlgoWillGreedyVer2{
     pub bonus_start:i64,
 }
 impl SimilarityAlgorithm for AlgoWillGreedyVer2 {
-    fn score(&self, target: &[u8], query: &[u8]) -> i64{
+    fn score<T: AsRef<[u8]>, Q: AsRef<[u8]>>(&self, target: T, query: Q) -> i64{
         // let mut reporter = DebugReporter { steps: Vec::new() };
         // let score = self.one_step_calc(target, query, &mut reporter);
         //
         // for step in reporter.steps {
         //     println!("{}", step);
         // }
-        // score
-        self.one_step_calc(target,query)
+        let t = target.as_ref();
+        let q = query.as_ref();
+        self.one_step_calc(t,q)
         // let indexies = self.find_match_indices(target, source).unwrap_or_default();
         // self.calculate_score(source, &indexies)
     }

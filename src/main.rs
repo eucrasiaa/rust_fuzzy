@@ -1,16 +1,13 @@
 // mod old_main;
 // use old_main::*;
-mod fuzzy;
-mod app;
+use will_fuzzy::fuzzy::algorithms::AlgoWillGreedyVer2;
+use will_fuzzy::fuzzy::canidate::{FuzzyCandidate, ScoreTarget};
+use will_fuzzy::fuzzy::session::SearchSession;
+use will_fuzzy::fuzzy::matcher::FuzzyMatcher;
+use will_fuzzy::app::FuzzyApp;
 // mod algorithms;
-use app::*;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-// use fuzzy::{AlgoWillBasicGreedyVer1, SimilarityAlgorithm};
-use crate::fuzzy::algorithms;
-use fuzzy::algorithms::algo_greedy_v2;
-use fuzzy::*;
 use std::fmt;
-use crate::fuzzy::session::SearchSession;
 use ini::Ini;
 use std::io::Result;
 use std::path::Path;
@@ -87,7 +84,7 @@ impl FuzzyCandidate for AnimalEnt{
         self.freq + 5
     }
     fn exec(&self) -> String{
-        "!".to_string()
+        "\0".to_string()
     }
     fn display_text(&self) -> &str{
         &self.precompute_str
