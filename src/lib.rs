@@ -2,7 +2,7 @@
 
 //! # Will's Fuzzy Algorithm Library
 //! 
-//! `will_fuzzy` is a quite fast, minimal allocation high efficienty fuzzy matching engine and
+//! `will_fuzzy` is a quite fast, low runtime allocation high efficienty fuzzy matching engine and
 //! psudo-TUI framework.
 //! This library provides the core search algorithms and session management required to 
 //! build custom fuzzy finders. additionally, by following the trait patterns defined, custom

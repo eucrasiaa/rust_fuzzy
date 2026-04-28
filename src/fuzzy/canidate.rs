@@ -32,10 +32,10 @@ pub enum SearchMode{
 /// 
 /// assumes a lowercase, non-exact match pattern. 
 pub struct GenericStringStruct {
-    pub visible_line: String,   // What the user sees
-    pub precompute_str: String, // The actual searchable (likely lowercased) string
-    pub freq: i64,              // Popularity score
-    pub mode: SearchMode,       // ASCII vs Unicode toggle
+    pub visible_line: String,   
+    pub precompute_str: String, 
+    pub freq: i64,       
+    pub mode: SearchMode, 
 }
 
 impl GenericStringStruct {
@@ -73,12 +73,10 @@ impl FuzzyCandidate for GenericStringStruct {
     }
 
     fn usage_bonus(&self) -> i64 {
-        // Boost score based on frequency
         self.freq
     }
 
     fn exec(&self) -> String {
-        // Return the raw text or a command to run
         self.visible_line.clone()
     }
 
@@ -95,15 +93,11 @@ impl CandidateGenerator {
     /// Creates a batch of candidates from raw strings
     pub fn from_lines(lines: Vec<String>) -> Vec<GenericStringStruct> {
         lines.into_iter()
-            .enumerate()
-            .map(|(idx, line)| {
+            .map(|line | {
                 let mut candidate = GenericStringStruct::new(&line, 0);
-                
-                // Heuristic: If it contains non-ASCII, set to Unicode mode
                 if !line.is_ascii() {
                     candidate.mode = SearchMode::Unicode;
                 }
-                
                 candidate
             })
             .collect()
