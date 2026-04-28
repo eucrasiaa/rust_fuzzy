@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"macro":["border"],"mod":["barchart","block","borders","calendar","canvas","chart","clear","gauge","list","logo","mascot","paragraph","scrollbar","sparkline","table","tabs"]};

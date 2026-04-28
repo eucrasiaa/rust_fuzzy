@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ErrorKind"],"mod":["fmt"],"struct":["BufReader","File","Path"],"trait":["BufRead"]};

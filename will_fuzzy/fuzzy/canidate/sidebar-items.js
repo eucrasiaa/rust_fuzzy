@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["ScoreTarget","ScoredResult"],"trait":["FuzzyBoxExt","FuzzyCandidate"]};

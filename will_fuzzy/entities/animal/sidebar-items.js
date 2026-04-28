@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["animal_demo"],"struct":["AnimalEnt"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["new_generic_from_file"],"struct":["CandidateGenerator","GenericStringStruct"]};

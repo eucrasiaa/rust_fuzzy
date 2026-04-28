@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["algo_greedy_v2"],"trait":["SimilarityAlgorithm"]};

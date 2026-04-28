@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["scale_weight"],"mod":["algorithm","algorithms","canidate","matcher","session"]};
