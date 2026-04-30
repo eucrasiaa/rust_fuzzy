@@ -93,7 +93,7 @@ impl<A: SimilarityAlgorithm> FuzzyMatcher<A> {
         };
         let q_lower = &q_lower_vec;
         // if its not ascii, we can use the buff 
-        let mut target_lower_buffer = String::with_capacity(64);
+        let mut target_lower_buffer = String::with_capacity(100);
         // let target_byte_buff = Vec prealloc?? maybe. 
         // let query_low = query.to_lowercase();
         let mut results: Vec<ScoredResult<'a, T>> = candidates

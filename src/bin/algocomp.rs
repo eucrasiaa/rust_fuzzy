@@ -44,23 +44,24 @@ fn main() -> Result<()>{
         "greater".to_string(),  
         "lesser".to_string(),
     ];
-    for _ in 1..=100{
-        for query in querries.iter() {
-            for c in query.to_ascii_lowercase().as_bytes() {
-                session.type_char(*c);
-            } 
-            // println!("{}",session.current_query());
-            // will_fuzzy::fuzzy::print_matches(session.top_results(1,0));
-            session.clear();
-        }
-    }
+    // for _ in 1..=100{
+    //     for query in querries.iter() {
+    //         for c in query.to_ascii_lowercase().as_bytes() {
+    //             session.type_char(*c);
+    //         } 
+    //         // println!("{}",session.current_query());
+    //         // will_fuzzy::fuzzy::print_matches(session.top_results(1,0));
+    //         session.clear();
+    //     }
+    // }
     for _ in 1..=100{
         for query in querries.iter() {
             for c in query.to_ascii_lowercase().as_bytes() {
                 session_2.type_char(*c);
+
+            println!("{}",session_2.current_query());
             } 
-            // println!("{}",session.current_query());
-            // will_fuzzy::fuzzy::print_matches(session.top_results(1,0));
+            will_fuzzy::fuzzy::print_matches(session_2.top_results(1,0));
             session_2.clear();
         }
     }
