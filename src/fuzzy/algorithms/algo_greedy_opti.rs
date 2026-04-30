@@ -77,33 +77,28 @@ impl AlgoGreedyOptimized {
     // fn one_step_calc<R:MatchReporter>(&self, target: &[u8], query: &[u8], reporter: &mut R) -> i64{
     // #[cfg(not(feature = "logging"))]
     // #[cfg(feature = "logging")]
+    //
     pub fn one_step_calc(&self, target: &[u8], query: &[u8]) -> i64{
-
-        // eprintln!("{}",String::from_utf8(target.to_vec()).unwrap());
-        // eprintln!("target: {:?}  -  query: {:?}",target,query);
-        // pub fn one_step_calc<R: MatchReporter>(&self, target: &[u8], query: &[u8], reporter: &mut R) -> i64 {
-        // let s = String::from_utf8((&target).to_vec()).expect("Found invalid UTF-8");
-        // refactor that actually works
-        // process psudo:
-        // if either empty, fail 
-        // ideally, fail if we dont match any bounds/start
-        // maybe? fail off first char not match. but more the any bounds
-        // prev iter matched usize var
-        // var score
-        // while over both,  
-        // check if identical
-        //    if match{
-        //    if start of string (index 1?) 
-        //              start bonus!
-        //    else if, check if prev matched. 
-        //        add consec bonus
-        //    else if prev is delimin
-        //         add delim bonus
-        //    update last matched index
-        //    advance query
-        //   }
-        //  regardless of match, advance target:
-        //}
+            // process psudo:
+            // if either empty, fail 
+            // ideally, fail if we dont match any bounds/start
+            // maybe? fail off first char not match. but more the any bounds
+            // prev iter matched usize var
+            // var score
+            // while over both,  
+            // check if identical
+            //    if match{
+            //    if start of string (index 1?) 
+            //              start bonus!
+            //    else if, check if prev matched. 
+            //        add consec bonus
+            //    else if prev is delimin
+            //         add delim bonus
+            //    update last matched index
+            //    advance query
+            //   }
+            //  regardless of match, advance target:
+            //}
         // if we reach end of query, return score. (want to ensure target didnt end early
         // i think? ran odd without)
         // short query first b/c it can be more consistantly jumptabled?
@@ -115,8 +110,20 @@ impl AlgoGreedyOptimized {
         let mut query_index=0;
         let t_ptr = target.as_ptr();
         let q_ptr = query.as_ptr();
+        // precompute delims?
+        if is_x86_feature_detected!("avx2") {
+            precomp_simd(q_ptr,t_ptr);
+            // unsafe {
+            //
+            // };
+        } else {
+            todo!();
+            // fallback_work();
+        }
+
         // println!("target: {:?}",  String::from_utf8(target.to_vec()).unwrap());
         // println!("query: {:?}", String::from_utf8(query.to_vec()).unwrap());
+
         while target_index < target.len() && query_index < query.len(){
             unsafe {
                 let t_byte = *t_ptr.add(target_index);
@@ -183,4 +190,23 @@ impl AlgoGreedyOptimized {
     fn is_sep(b: u8) -> bool {
         b == b' ' || b == b'-' || b == b'_' || b == b'/' || b == b'\\' || b == b'.'
     }
+    //TODO just pre-simd check if any delims, and dont even check delims if none?
+    pub fn precomp_simd(q_ptr:*const u8, t_ptr:*const u8){  
+        unsafe{
+                let ymm0 = _mm256_loadu_si256(t_ptr as *const __m256i);
+
+                // 2. vmovdqu ymm1, [{nls}]
+                let ymm1 = _mm256_loadu_si256(q_ptr as *const __m256i);
+
+                // 3. vpcmpeqb ymm0, ymm0, ymm1
+                let cmp_result = _mm256_cmpeq_epi8(ymm0, ymm1);
+                if _mm256_testz_si256(cmp_result, cmp_result) == 0 {
+                    //if any 
+                }
+                // 4. vpmovmskb {mask:e}, ymm0
+                // let mask = _mm256_movemask_epi8(cmp_result);
+                // if mask & mask
+        }
+    }
+
 

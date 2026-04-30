@@ -81,8 +81,7 @@ impl<A: SimilarityAlgorithm> FuzzyMatcher<A> {
         threshold: i64,
         is_ascii:&bool,
     ) -> Vec<ScoredResult<'a, T>> {
-        if query.is_empty() {return vec![]} // eh?
-        
+        if query.is_empty() {return vec![]} // eh? 
         // preprocess query here not every call
         //                     let t_bytes = target.text.as_bytes();
 

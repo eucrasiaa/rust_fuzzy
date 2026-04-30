@@ -1,3 +1,5 @@
+cargo +nightly llvm-cov run --branch --bin algocomp --open
+
 
 
 

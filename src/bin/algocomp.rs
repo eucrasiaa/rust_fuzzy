@@ -54,14 +54,14 @@ fn main() -> Result<()>{
     //         session.clear();
     //     }
     // }
-    for _ in 1..=100{
+    for _ in 1..=10{
         for query in querries.iter() {
             for c in query.to_ascii_lowercase().as_bytes() {
                 session_2.type_char(*c);
 
-            println!("{}",session_2.current_query());
+            // println!("{}",session_2.current_query());
             } 
-            will_fuzzy::fuzzy::print_matches(session_2.top_results(1,0));
+            // will_fuzzy::fuzzy::print_matches(session_2.top_results(1,0));
             session_2.clear();
         }
     }
