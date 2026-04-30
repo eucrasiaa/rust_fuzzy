@@ -2,6 +2,9 @@
 name = "will_fuzzy"
 version = "1.0.0"
 edition = "2024"
+default-run = "main"
+
+
 
 [dependencies]
 crossterm = "0.29.0"
@@ -12,3 +15,11 @@ rust-ini = "0.21.3"
 strip = true
 # debug = true
 #
+
+[features]
+default = ["logging"] 
+logging = []
+
+[[bin]]
+name = "main"
+path = "src/main.rs"

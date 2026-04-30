@@ -1,0 +1,5 @@
+[alias]
+rm = "run --release --bin main"
+rr = "run --release"
+r = "run"
+rd = "run --bin algocomp"

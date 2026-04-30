@@ -1,5 +1,8 @@
 pub use super::SimilarityAlgorithm;
-
+#[cfg(feature = "logging")]
+use crate::fuzzy::StepSnapshot;
+#[cfg(feature = "logging")]
+pub use crate::fuzzy::TraceReporter;
 
 /// Remade Algorithm, might actually do what it says
 /// we traverse down the query, and see if the letter maps to somewhere within the target.
@@ -13,7 +16,9 @@ pub struct AlgoWillGreedyVer2{
     pub bonus_consec:i64,
     pub bonus_start:i64,
 }
+
 impl SimilarityAlgorithm for AlgoWillGreedyVer2 {
+    // #[cfg(not(feature = "logging"))] 
     fn score<T: AsRef<[u8]>, Q: AsRef<[u8]>>(&self, target: T, query: Q) -> i64{
         // let mut reporter = DebugReporter { steps: Vec::new() };
         // let score = self.one_step_calc(target, query, &mut reporter);
@@ -24,9 +29,13 @@ impl SimilarityAlgorithm for AlgoWillGreedyVer2 {
         let t = target.as_ref();
         let q = query.as_ref();
         self.one_step_calc(t,q)
-        // let indexies = self.find_match_indices(target, source).unwrap_or_default();
-        // self.calculate_score(source, &indexies)
+            // let indexies = self.find_match_indices(target, source).unwrap_or_default();
+            // self.calculate_score(source, &indexies)
     }
+
+    // let indexies = self.find_match_indices(target, source).unwrap_or_default();
+    // self.calculate_score(source, &indexies)
+
 }
 impl Default for AlgoWillGreedyVer2 {
     fn default() -> Self {
@@ -55,13 +64,23 @@ impl AlgoWillGreedyVer2 {
         self.bonus_start = custom_bonus_start;
     }
 
+    // #[cfg(feature = "logging")]
+    // pub fn one_step_calc_rep(&self, target: &[u8], query: &[u8], mut reporter: &TraceReporter) -> (i64, mTraceReporter){
+    //
+    //     (0,reporter)
+    // }
     /// core philosopy is fast fail, fast iter, minimal allocations
-    ///
+    //
     // fn one_step_calc<R:MatchReporter>(&self, target: &[u8], query: &[u8], reporter: &mut R) -> i64{
-    pub fn one_step_calc(&self, target: &[u8], query: &[u8]) -> i64{
+    // #[cfg(not(feature = "logging"))]
+    // #[cfg(feature = "logging")]
+    pub fn one_step_calc(&self, target: &[u8], query: &[u8],
+        // #[cfg(feature = "logging")] reporter: &mut TraceReporter
+    ) -> i64{
+
         // eprintln!("{}",String::from_utf8(target.to_vec()).unwrap());
         // eprintln!("target: {:?}  -  query: {:?}",target,query);
-    // pub fn one_step_calc<R: MatchReporter>(&self, target: &[u8], query: &[u8], reporter: &mut R) -> i64 {
+        // pub fn one_step_calc<R: MatchReporter>(&self, target: &[u8], query: &[u8], reporter: &mut R) -> i64 {
         // let s = String::from_utf8((&target).to_vec()).expect("Found invalid UTF-8");
         // refactor that actually works
         // process psudo:
@@ -92,10 +111,14 @@ impl AlgoWillGreedyVer2 {
         let mut score:i64 = 0;
         let mut target_index=0;
         let mut query_index=0;
+        #[cfg(feature = "logging")]
+        let mut reporter = TraceReporter::new(target, query); 
         while target_index < target.len() && query_index < query.len(){
             let t_byte = target[target_index];
             let q_byte = query[query_index];
             //match, orr if either is a seperator(match)
+            #[cfg(feature = "logging")]
+            let is_match = t_byte == q_byte || (is_sep(t_byte) && is_sep(q_byte)); 
             if t_byte == q_byte || (is_sep(t_byte) && is_sep(q_byte)) {
                 // b/c we advance both together, or target alone, any target_index ==0 means its on
                 // first. so, apply bonus start
@@ -112,7 +135,7 @@ impl AlgoWillGreedyVer2 {
                     score += mask & self.bonus_bound;
                     // score += -(is_sep(target[target_index - 1]) as i64) & self.bonus_bound;
                     // unsafe { std::arch::asm!(";# LLVM-MCA-END"); }
-                     
+
                     // CONSEC BONUS
                     if target_index == prev_match_index + 1 {
                         amt_consec+=5;
@@ -123,14 +146,38 @@ impl AlgoWillGreedyVer2 {
                 prev_match_index = target_index;
 
                 // advance query if match expr
-                query_index +=1;   
+                #[cfg(feature = "logging")]
+                reporter.record(StepSnapshot {
+                    target_index, query_index,
+                    t_byte, q_byte,
+                    prev_match_index, amt_consec, score,
+                    is_match
+                });
+
+                query_index +=1;  
+
+
+            }
+
+            #[cfg(feature = "logging")]
+            if !is_match{
+                reporter.record(StepSnapshot {
+                    target_index, query_index,
+                    t_byte, q_byte,
+                    prev_match_index, amt_consec, score,
+                    is_match
+                });
             }
             target_index +=1;
         }
         let mask = ((query_index == query.len()) as i64).wrapping_neg();
-        mask & score
+
+        let ret_score = mask & score;
+        #[cfg(feature = "logging")]
+        reporter.print_trace(ret_score);
+        ret_score
     }
-    
+
 }
 static SEPARATOR_MAP: [i64; 256] = {
     let mut map = [0i64; 256];

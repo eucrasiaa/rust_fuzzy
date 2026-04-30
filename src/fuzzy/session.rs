@@ -114,10 +114,18 @@ where
         let end = (offset + number).min(total_len);
         &self.current_results[offset..end]
     } 
-    pub fn set_query(&mut self, query: String) {
-        // just incase? assumedly only using one  ver at a time but
-        self.history.clear(); 
-        self.current_query = query;
+    // pub fn set_query(&mut self, query: String) {
+    //     // just incase? assumedly only using one  ver at a time but
+    //     self.history.clear(); 
+    //     self.current_query = query;
+    //     self.run_search_and_update_history();
+    // }
+    pub fn set_query<Q>(&mut self, query: Q) 
+    where 
+        Q: Into<String> 
+    {
+        self.current_query = query.into();
+        self.history.clear();
         self.run_search_and_update_history();
     }
 
