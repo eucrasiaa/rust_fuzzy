@@ -43,6 +43,15 @@ pub trait MatchReporter {
     fn on_step(&mut self, target: &str, current_idx: usize, query_char: char, matched: bool, score_diff: i64);
 }
 
+    pub fn print_matches<G>(results: &[ScoredResult<'_, G>]) 
+        where 
+            G: FuzzyCandidate,
+        {
+            for result in results {
+                println!("{result}"); // This works because ScoredResult implements Display
+            }
+        }
+
 #[cfg(feature = "logging")]
 #[derive(Debug, Clone)]
 pub struct StepSnapshot {

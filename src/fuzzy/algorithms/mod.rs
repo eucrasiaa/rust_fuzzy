@@ -1,7 +1,9 @@
 // pub mod algo_basic_greedy_v1;
 pub mod algo_greedy_v2;
+pub mod algo_greedy_opti;
 // pub use algo_basic_greedy_v1::AlgoWillBasicGreedyVer1;
 pub use algo_greedy_v2::AlgoWillGreedyVer2;
+pub use algo_greedy_opti::AlgoGreedyOptimized;
 
 #[cfg(feature = "logging")]
 pub use crate::fuzzy::TraceReporter;

@@ -12,14 +12,22 @@ itoa = "1.0.18"
 ratatui = "0.30.0"
 rust-ini = "0.21.3"
 [profile.release]
-strip = true
-# debug = true
+# strip = true
+debug = true
 #
 
 [features]
-default = ["logging"] 
+# default = ["logging"] 
 logging = []
 
 [[bin]]
 name = "main"
 path = "src/main.rs"
+
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "algocomp"
+harness = false

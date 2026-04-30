@@ -114,6 +114,8 @@ where
         let end = (offset + number).min(total_len);
         &self.current_results[offset..end]
     } 
+
+
     // pub fn set_query(&mut self, query: String) {
     //     // just incase? assumedly only using one  ver at a time but
     //     self.history.clear(); 
@@ -124,11 +126,20 @@ where
     where 
         Q: Into<String> 
     {
+        self.clear();
         self.current_query = query.into();
-        self.history.clear();
+        // self.history.clear();
         self.run_search_and_update_history();
     }
 
+    pub fn clear(&mut self){
+        self.history.clear();
+        self.current_threshold = 0;
+        self.num_results = self.internal_state.len_canidates;
+        self.current_results.clear();
+        self.current_query.clear();
+
+    }
     fn run_search_and_update_history(&mut self) {
         let candidates_to_search: Vec<&T> = if self.history.is_empty() {
             self.candidate_structs.iter().collect()
@@ -150,8 +161,11 @@ where
         self.num_results = new_length;
     }
     /// TODID that !!!
-    pub fn type_char(&mut self, c: char) {
-        self.current_query.push(c); 
+    // pub fn type_char(&mut self, c: char) {
+    pub fn type_char<C: Into<char>>(&mut self, c: C) {
+
+
+        self.current_query.push(c.into()); 
 
 
         // let candidates_to_search: Vec<&T> = if let Some((last_results, _score, _index)) = self.history.last() {
